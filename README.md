@@ -27,26 +27,26 @@ graph TD
     %% Node Definitions
     Start((<b>START</b>)) --> Type{<b>Omics Mode</b>}
     
-    Type -- "Proteomics" --> P_Bio{Bio Reps?}
-    Type -- "N-Glyco/Mito" --> G_Bio{Bio Reps?}
+    Type -- "Bulk Proteomics" --> P_Bio{Bio Reps?}
+    Type -- "N-Glycosite modification" --> G_Bio{Bio Reps?}
     
     %% Proteomics Sub-tree
     P_Bio -- Yes --> P_Tech_Y{Tech Reps?}
     P_Bio -- No --> P_Tech_N{Tech Reps?}
     
     P_Tech_Y -- Yes --> B1["<b>Branch 1</b><br>Full Design"]
-    P_Tech_Y -- No  --> B2["<b>Branch 2</b><br>Bio-Driven"]
-    P_Tech_N -- Yes --> B3["<b>Branch 3</b><br>Tech-Validated"]
+    P_Tech_Y -- No  --> B2["<b>Branch 2</b><br>Bio-Validated"]
+    P_Tech_N -- Yes --> B3["<b>Branch 3</b><br>Tech-Corrected"]
     P_Tech_N -- No  --> B4["<b>Branch 4</b><br>Rapid Screen"]
     
     %% Glyco Sub-tree
     G_Bio -- Yes --> G_Tech_Y{Tech Reps?}
     G_Bio -- No --> G_Tech_N{Tech Reps?}
     
-    G_Tech_Y -- Yes --> B5["<b>Branch 5</b><br>Glyco-Mapping"]
-    G_Tech_Y -- No  --> B6["<b>Branch 6</b><br>Site-Diff"]
-    G_Tech_N -- Yes --> B7["<b>Branch 7</b><br>Stability Eval"]
-    G_Tech_N -- No  --> B8["<b>Branch 8</b><br>ID Only"]
+    G_Tech_Y -- Yes --> B5["<b>Branch 5</b><br>Full Design"]
+    G_Tech_Y -- No  --> B6["<b>Branch 6</b><br>Bio-Validated"]
+    G_Tech_N -- Yes --> B7["<b>Branch 7</b><br>Tech-Corrected"]
+    G_Tech_N -- No  --> B8["<b>Branch 8</b><br>Rapid Screen"]
 
     %% --- Styles ---
     classDef default fill:#fff,stroke:#cbd5e1,stroke-width:1px,color:#334155,font-family:arial;
