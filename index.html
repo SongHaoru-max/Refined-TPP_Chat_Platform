@@ -7,13 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* 滚动条美化 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-        /* 进入平台的过渡动画 */
         #main-platform {
             transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -22,7 +20,6 @@
             transform: scale(0.95);
             pointer-events: none;
         }
-        /* 模态框显示类 */
         .modal-active { display: flex !important; animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -55,7 +52,7 @@
                     <input type="password" placeholder="Access Password" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all">
                     
                     <div class="flex items-center mt-4 mb-2 ml-1">
-                        <input type="checkbox" id="agree-policy" class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <input type="checkbox" id="agree-policy" class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                         <label for="agree-policy" class="ml-2 text-[10px] text-slate-400 font-medium">
                             I agree to the <button onclick="toggleModal('policy-modal')" class="text-indigo-400 hover:underline">Research-Only Policy</button>
                         </label>
@@ -65,6 +62,10 @@
                         Enter Platform 
                         <i class="fas fa-chevron-right ml-2 text-indigo-300 group-hover:translate-x-1 transition-transform"></i>
                     </button>
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-white/5 flex justify-center text-[10px] text-slate-500 font-medium">
+                    <button onclick="toggleModal('readme-modal')" class="hover:text-indigo-400 transition mx-3">Contact Support</button>
                 </div>
             </div>
         </div>
@@ -83,6 +84,7 @@
             </div>
             <div class="flex items-center space-x-6 text-sm font-semibold">
                 <button onclick="toggleModal('readme-modal')" class="text-gray-500 hover:text-indigo-600 transition">Project README</button>
+                <button onclick="toggleModal('readme-modal')" class="text-gray-500 hover:text-indigo-600 transition">Contact</button>
                 <a href="https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform" target="_blank" class="bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition flex items-center shadow-md">
                     <i class="fab fa-github mr-2"></i> GitHub
                 </a>
@@ -107,15 +109,11 @@
                 
                 <div class="flex-1 relative group">
                     <textarea id="dataInput" placeholder="Paste your raw data here (CSV, JSON, or plain text)..." class="w-full h-full p-6 border-2 border-slate-100 rounded-[2rem] focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 focus:outline-none font-mono text-sm leading-relaxed transition-all resize-none bg-slate-50/50 group-hover:bg-white shadow-inner"></textarea>
-                    <div class="absolute bottom-6 right-6 text-[10px] text-slate-300 font-mono italic font-bold">Format: UTF-8 Encoding</div>
                 </div>
 
                 <div class="mt-4 flex items-center space-x-4">
                     <button class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
                         PROCESS WITH AGENT <i class="fas fa-bolt ml-2 text-indigo-200"></i>
-                    </button>
-                    <button title="Upload File" class="px-6 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 hover:bg-slate-50 transition">
-                        <i class="fas fa-file-upload text-lg"></i>
                     </button>
                 </div>
             </section>
@@ -139,7 +137,7 @@
                 <div id="chatBox" class="flex-1 overflow-y-auto p-6 space-y-6">
                     <div class="flex items-start space-x-3">
                         <div class="flex-1 bg-white p-5 rounded-3xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600 leading-relaxed shadow-indigo-50/30">
-                            Hello! I am your AI agent. Paste your raw data on the left, and I'll help you with **cleaning, entity extraction, or visual analysis.**
+                            Hello! I am your AI agent. Paste your raw data on the left to start processing.
                         </div>
                     </div>
                 </div>
@@ -157,64 +155,67 @@
 
         <footer class="bg-white border-t py-4 px-8 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-tight">
             <div class="flex items-center space-x-6">
-                <div class="flex items-center">
-                    <span class="text-slate-300 mr-2 uppercase italic">Lab:</span>
-                    <span class="text-slate-500">Haojie Lu Lab @ Fudan University</span>
-                </div>
+                <span>Lab: Haojie Lu Lab @ Fudan University</span>
                 <div class="h-3 w-px bg-slate-200"></div>
-                <div class="flex items-center">
-                    <span class="text-slate-300 mr-2 uppercase italic">Dev:</span>
-                    <span class="text-indigo-600 font-black tracking-normal">
-                        Haoru Song <span class="text-slate-300 font-light mx-1">|</span> 宋昊儒
-                    </span>
-                </div>
+                <span>Dev: <span class="text-indigo-600 font-black tracking-normal">Haoru Song | 宋昊儒</span></span>
             </div>
-            
-            <div class="flex items-center space-x-6">
-                <button onclick="copyCitation()" class="group flex items-center hover:text-indigo-600 transition">
-                    <i class="fas fa-quote-left mr-1.5 text-slate-300 group-hover:text-indigo-400"></i> Cite Platform
-                </button>
-            </div>
+            <button onclick="copyCitation()" class="hover:text-indigo-600 transition uppercase"><i class="fas fa-quote-left mr-1"></i> Cite</button>
         </footer>
     </div>
 
     <div id="policy-modal" class="hidden fixed inset-0 z-[200] items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="toggleModal('policy-modal')"></div>
-        <div class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10">
-            <h3 class="text-2xl font-black text-slate-800 mb-6">Research-Only Policy</h3>
-            <div class="text-slate-600 text-sm space-y-4 leading-relaxed font-medium">
-                <p>• Strictly for <b>academic and educational use</b>.</p>
-                <p>• Unauthorized commercial distribution is prohibited.</p>
-                <p>• Please cite the <b>Haojie Lu Lab</b> in publications.</p>
+        <div class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            <button onclick="toggleModal('policy-modal')" class="mt-8 w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition hover:bg-slate-800">I AGREE</button>
+            <h3 class="text-2xl font-black text-slate-800 mb-4">Research-Only Policy</h3>
+            <div class="text-slate-600 text-sm space-y-4 leading-relaxed text-left font-medium">
+                <p>• Strictly for <b>academic and educational use</b>.</p>
+                <p>• Please do not upload sensitive PII (Personal Identifiable Information).</p>
+                <p>• Cite <b>Haojie Lu Lab @ Fudan</b> for any derived work.</p>
+            </div>
+            <button onclick="toggleModal('policy-modal')" class="mt-8 w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition hover:bg-slate-800">I UNDERSTAND</button>
         </div>
     </div>
 
     <div id="readme-modal" class="hidden fixed inset-0 z-[200] items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="toggleModal('readme-modal')"></div>
-        <div class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-10 overflow-y-auto max-h-[80vh]">
-            <h3 class="text-3xl font-black text-slate-800 italic mb-6 border-b pb-4">README.md</h3>
-            <div class="text-slate-600 text-base space-y-4 leading-relaxed">
-                <p class="font-bold text-indigo-600">Project: Chat-RefinedTPP Collaborative Platform</p>
-                <p>Developed as a high-performance interface for Textual Pattern Processing (TPP), our platform leverages multi-agent intelligence to process complex scientific datasets.</p>
-                <h4 class="font-bold text-slate-800 text-lg mt-6">Features:</h4>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li>Dynamic Entity Recognition for Clinical Data.</li>
-                    <li>Automated Cleaning for CSV/JSON structured streams.</li>
-                    <li>Collaborative Agent Feedback loops.</li>
-                </ul>
+        <div class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-10 overflow-y-auto max-h-[85vh]">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-3xl font-black text-slate-800 italic border-b-4 border-indigo-500 pb-2">README.md</h3>
+                <button onclick="toggleModal('readme-modal')" class="text-slate-400 hover:text-rose-500 transition"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div class="text-slate-600 space-y-6 leading-relaxed">
+                <div>
+                    <h4 class="text-indigo-600 font-black uppercase text-xs tracking-[0.2em] mb-2">Introduction</h4>
+                    <p class="text-base italic">Developed by <b>Haoru Song</b> at <b>Haojie Lu Lab</b>, RefinedTPP is an advanced interface for Textual Pattern Processing, optimizing data cleaning and entity recognition workflows via AI agents.</p>
+                </div>
+                <div>
+                    <h4 class="text-indigo-600 font-black uppercase text-xs tracking-[0.2em] mb-2">Main Features</h4>
+                    <ul class="list-disc pl-5 space-y-2 text-sm">
+                        <li><b>Streamlined Submission:</b> Support for raw clinical text, CSV, and JSON.</li>
+                        <li><b>Agent Collaboration:</b> Real-time feedback for complex extraction tasks.</li>
+                        <li><b>Research Ready:</b> Native BibTeX citation and laboratory attribution.</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <h4 class="text-slate-900 font-black uppercase text-xs tracking-[0.2em] mb-4">Contact & Support</h4>
+                    <div class="space-y-3 text-sm">
+                        <p class="flex items-center"><i class="fas fa-envelope w-6 text-indigo-500"></i> <b>Email:</b> haoru.song@fudan.edu.cn</p>
+                        <p class="flex items-center"><i class="fas fa-university w-6 text-indigo-500"></i> <b>Lab:</b> Haojie Lu Lab @ Fudan University</p>
+                        <p class="flex items-center"><i class="fab fa-github w-6 text-indigo-500"></i> <b>GitHub:</b> SongHaoru-max</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 控制模态框
         function toggleModal(id) {
             document.getElementById(id).classList.toggle('modal-active');
         }
 
-        // 进入主界面
         function enterPlatform() {
             if (!document.getElementById('agree-policy').checked) {
                 alert("Please agree to the Research-Only Policy first.");
@@ -230,10 +231,9 @@
             }, 700);
         }
 
-        // 示例数据配置
         const examples = {
-            clinical: "Patient ID: #0042\nBody Temp: 38.5°C\nDiagnosis: Acute Respiratory Infection\nPlan: Bed rest, increase fluids, ibuprofen if needed.",
-            sales: "id,product,price,quantity\n1,MacBook Air,999,5\n2,iPhone 15,799,12\n3,AirPods Pro,249,25"
+            clinical: "Patient ID: #0042\nBody Temp: 38.5°C\nDiagnosis: Acute Respiratory Infection\nPlan: Bed rest, increase fluids.",
+            sales: "id,product,price,quantity\n1,MacBook Air,999,5\n2,iPhone 15,799,12"
         };
 
         function loadExample(type) {
