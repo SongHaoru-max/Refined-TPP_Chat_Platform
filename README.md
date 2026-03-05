@@ -26,6 +26,10 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 <strong>Simply input your raw DB-search results, and let the AI agent route your data through the optimal pipeline!!</strong>
 
 ---
+## 🛠️ Key Features (Core Capabilities)
+
+
+---
 ## 🧭 Decision Matrix (8-Branch Architecture)
 
 Our platform automatically routes your data through a **Triple-Layer Logic Gate**. Select your branch based on omics type and replicate design.
