@@ -23,7 +23,7 @@
 
 The platform integrates **intelligent experiment interpretation**, **robust statistical modeling**, and **specialized workflows for protein- and N-glycosite-level analyses**, enabling researchers to analyze Refined-TPP data with minimal manual configuration.
 
-Simply input your raw DB-search results, and let the AI agent route your data through the optimal pipeline!!
+<strong>Simply input your raw DB-search results, and let the AI agent route your data through the optimal pipeline!!</strong>
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
