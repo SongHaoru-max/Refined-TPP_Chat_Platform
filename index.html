@@ -22,6 +22,9 @@
         }
         .modal-active { display: flex !important; animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 拖拽上传时的样式 */
+        .drag-over { border-color: #6366f1 !important; background-color: #f5f7ff !important; }
     </style>
 </head>
 <body class="bg-slate-50 h-screen overflow-hidden font-sans text-gray-800">
@@ -108,12 +111,16 @@
                 </div>
                 
                 <div class="flex-1 relative group">
-                    <textarea id="dataInput" placeholder="Paste your raw data here (CSV, JSON, or plain text)..." class="w-full h-full p-6 border-2 border-slate-100 rounded-[2rem] focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 focus:outline-none font-mono text-sm leading-relaxed transition-all resize-none bg-slate-50/50 group-hover:bg-white shadow-inner"></textarea>
+                    <textarea id="dataInput" placeholder="Paste your raw data here or drag a file (.txt, .csv, .json) inside..." class="w-full h-full p-6 border-2 border-slate-100 rounded-[2rem] focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 focus:outline-none font-mono text-sm leading-relaxed transition-all resize-none bg-slate-50/50 group-hover:bg-white shadow-inner"></textarea>
                 </div>
 
                 <div class="mt-4 flex items-center space-x-4">
-                    <button class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                    <button onclick="simulateProcess()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center justify-center">
                         PROCESS WITH AGENT <i class="fas fa-bolt ml-2 text-indigo-200"></i>
+                    </button>
+                    <button onclick="document.getElementById('fileInput').click()" title="Upload File" class="px-6 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-100 transition relative">
+                        <i class="fas fa-file-upload text-lg"></i>
+                        <input type="file" id="fileInput" class="hidden" accept=".txt,.csv,.json" onchange="handleFileUpload(event)">
                     </button>
                 </div>
             </section>
@@ -125,7 +132,7 @@
                             <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white shadow-md">
                                 <i class="fas fa-robot text-lg"></i>
                             </div>
-                            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+                            <div id="status-indicator" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
                         </div>
                         <div>
                             <p class="text-sm font-bold text-slate-700">RefinedTPP Assistant</p>
@@ -137,15 +144,15 @@
                 <div id="chatBox" class="flex-1 overflow-y-auto p-6 space-y-6">
                     <div class="flex items-start space-x-3">
                         <div class="flex-1 bg-white p-5 rounded-3xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600 leading-relaxed shadow-indigo-50/30">
-                            Hello! I am your AI agent. Paste your raw data on the left to start processing.
+                            Hello! I am your AI agent. Paste your raw data on the left or **drag a file** to start processing.
                         </div>
                     </div>
                 </div>
 
                 <div class="p-6 bg-white border-t">
                     <div class="relative group">
-                        <input type="text" placeholder="Type instructions here..." class="w-full pl-5 pr-14 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all shadow-inner">
-                        <button class="absolute right-2 top-2 p-3 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition">
+                        <input id="chatInput" type="text" placeholder="Type instructions here..." class="w-full pl-5 pr-14 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all shadow-inner">
+                        <button onclick="simulateProcess()" class="absolute right-2 top-2 p-3 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition">
                             <i class="fas fa-paper-plane text-xs"></i>
                         </button>
                     </div>
@@ -191,14 +198,6 @@
                     <h4 class="text-indigo-600 font-black uppercase text-xs tracking-[0.2em] mb-2">Introduction</h4>
                     <p class="text-base italic">Developed by <b>Haoru Song</b> at <b>Haojie Lu Lab</b>, RefinedTPP is an advanced interface for Textual Pattern Processing, optimizing data cleaning and entity recognition workflows via AI agents.</p>
                 </div>
-                <div>
-                    <h4 class="text-indigo-600 font-black uppercase text-xs tracking-[0.2em] mb-2">Main Features</h4>
-                    <ul class="list-disc pl-5 space-y-2 text-sm">
-                        <li><b>Streamlined Submission:</b> Support for raw clinical text, CSV, and JSON.</li>
-                        <li><b>Agent Collaboration:</b> Real-time feedback for complex extraction tasks.</li>
-                        <li><b>Research Ready:</b> Native BibTeX citation and laboratory attribution.</li>
-                    </ul>
-                </div>
                 <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                     <h4 class="text-slate-900 font-black uppercase text-xs tracking-[0.2em] mb-4">Contact & Support</h4>
                     <div class="space-y-3 text-sm">
@@ -212,10 +211,7 @@
     </div>
 
     <script>
-        function toggleModal(id) {
-            document.getElementById(id).classList.toggle('modal-active');
-        }
-
+        // 核心交互：进入平台
         function enterPlatform() {
             if (!document.getElementById('agree-policy').checked) {
                 alert("Please agree to the Research-Only Policy first.");
@@ -231,15 +227,104 @@
             }, 700);
         }
 
-        const examples = {
-            clinical: "Patient ID: #0042\nBody Temp: 38.5°C\nDiagnosis: Acute Respiratory Infection\nPlan: Bed rest, increase fluids.",
-            sales: "id,product,price,quantity\n1,MacBook Air,999,5\n2,iPhone 15,799,12"
-        };
+        // 核心交互：文件处理
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        function loadExample(type) {
-            document.getElementById('dataInput').value = examples[type];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('dataInput').value = e.target.result;
+                addBotMessage(`Successfully loaded **${file.name}**. I'm ready to process it. What should I do?`);
+            };
+            reader.readAsText(file);
         }
 
+        // 核心交互：模拟 Agent 处理结果返回
+        function simulateProcess() {
+            const inputData = document.getElementById('dataInput').value;
+            const chatInput = document.getElementById('chatInput');
+            
+            if (!inputData.trim()) {
+                alert("Please provide some raw data first!");
+                return;
+            }
+
+            // 1. 添加用户消息
+            const instruction = chatInput.value || "Process the data using RefinedTPP.";
+            addUserMessage(instruction);
+            chatInput.value = "";
+
+            // 2. 显示加载状态
+            const loadingId = "loading-" + Date.now();
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += `
+                <div id="${loadingId}" class="flex items-start space-x-3 mb-6">
+                    <div class="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center animate-pulse"><i class="fas fa-robot text-slate-400"></i></div>
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex space-x-2">
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    </div>
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 3. 模拟 1.5 秒后返回结果
+            setTimeout(() => {
+                document.getElementById(loadingId).remove();
+                const resultHTML = `
+                    <div class="flex-1 bg-white p-5 rounded-3xl rounded-tl-none border border-slate-100 shadow-sm shadow-indigo-50/30">
+                        <p class="text-sm font-bold text-indigo-600 mb-2 underline">Analysis Complete!</p>
+                        <div class="bg-slate-50 rounded-xl p-3 font-mono text-[11px] text-slate-600 border border-slate-100">
+                            [Status]: Success <br>
+                            [Nodes identified]: ${Math.floor(Math.random()*10) + 1} <br>
+                            [RefinedTPP_Log]: Task completed in 0.42s.
+                        </div>
+                        <button onclick="alert('Downloading structured data...')" class="mt-4 text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-black hover:bg-indigo-600 hover:text-white transition uppercase">Download JSON Result</button>
+                    </div>
+                `;
+                addBotMessage(resultHTML, true);
+            }, 1500);
+        }
+
+        // 辅助：消息渲染
+        function addUserMessage(text) {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += `<div class="flex justify-end mb-6"><div class="bg-indigo-600 text-white p-4 rounded-3xl rounded-tr-none text-sm shadow-md max-w-[80%]">${text}</div></div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addBotMessage(content, isHTML = false) {
+            const chatBox = document.getElementById('chatBox');
+            const message = isHTML ? content : `<div class="bg-white p-5 rounded-3xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600">${content}</div>`;
+            chatBox.innerHTML += `
+                <div class="flex items-start space-x-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white shadow-md"><i class="fas fa-robot text-sm"></i></div>
+                    ${isHTML ? message : `<div class="flex-1">${message}</div>`}
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 拖拽文件逻辑
+        const dropZone = document.getElementById('dataInput');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFileUpload({ target: { files: [file] } });
+        });
+
+        // 原有其他功能
+        function toggleModal(id) { document.getElementById(id).classList.toggle('modal-active'); }
+        const examples = {
+            clinical: "Patient ID: #0042\nDiagnosis: Acute Respiratory Infection\nPlan: Bed rest.",
+            sales: "id,product,price,quantity\n1,MacBook Air,999,5"
+        };
+        function loadExample(type) { document.getElementById('dataInput').value = examples[type]; }
         function copyCitation() {
             const citation = "@article{refinedtpp2026,\n  author = {Haoru Song, Haojie Lu Lab},\n  title = {RefinedTPP Platform},\n  year = {2026}\n}";
             navigator.clipboard.writeText(citation);
