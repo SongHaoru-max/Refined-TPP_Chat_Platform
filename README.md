@@ -1,6 +1,5 @@
 # Chat-RefinedTPP Platform
 🤖 AI Agent–Driven Processing and Analysis Platform for Raw Refined-TPP Quantitative Proteomics
-
 <div align="center">
   <img src="assets/Logo.png" width="120" height="120" alt="RefinedTPP Logo">
   <br />
@@ -9,6 +8,8 @@
     <br />
     <i>Empowering high-precision quantitative proteomics with robust AI-agent collaboration.</i>
   </p>
+  
+  <b>Developer & Maintainer: Haoru Song (宋昊儒）</b>
 
   [![License](https://img.shields.io/badge/License-Academic%20Only-indigo.svg)](https://opensource.org/licenses/MIT)
   [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
