@@ -53,8 +53,11 @@ graph TD
     classDef decision fill:#f8fafc,stroke:#94a3b8,stroke-width:2px;
     classDef branch fill:#ffffff,stroke:#e2e8f0,stroke-width:1px;
     classDef highlight fill:#eef2ff,stroke:#6366f1,stroke-width:2px,color:#4338ca;
+    classDef original fill:#8ae0a5,stroke:#059669,stroke-width:2px,color:#10b981;
 
     class Type,P_Bio,G_Bio,P_Tech_Y,P_Tech_N,G_Tech_Y,G_Tech_N decision;
-    class B1,B2,B4,B5,B6,B7,B8 branch;
+    class B2,B4,B5,B7,B8 branch;
     class B3 highlight;
+    class B1 highlight;
+    class B6 original;
     style Start fill:#1e293b,color:#fff,stroke:#0f172a
