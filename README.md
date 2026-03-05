@@ -1,5 +1,5 @@
 # Chat-RefinedTPP Platform
-🤖 AI Agent–Driven Processing and Analysis Platform for Raw TMT-based Refined-TPP Quantitative data
+🤖 AI Agent–Driven Processing and Analysis Platform for Raw TMT-based Refined-TPP Quantitative Data
 <div align="center">
   <img src="assets/Logo.png" width="120" height="120" alt="RefinedTPP Logo">
   <br />
