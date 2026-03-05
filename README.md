@@ -49,6 +49,16 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 **3️⃣ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential analysis even in experiments without biological replicates (when ΔRm is normally distributed across proteins/N-glycosites).
 
 **4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low false discovery rate.
+<br>
+
+📈 <strong>Interactive Data Quality Control</strong>
+*Bridging the gap between "black-box" analysis and researcher intuition:*
+
+**1️⃣ Visual Profiling**: Real-time Rm value's CV distribution visualization across all proteins/N-glycosites.
+
+**2️⃣ Interactive Thresholding**: Users can set custom CV cutoffs to automatically prune low-quality quantified proteins/N-glycosites.
+
+**3️⃣ Reliability Assurance**: Guarantees that downstream analysis is built upon dta with high reproducibility and completeness.
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
