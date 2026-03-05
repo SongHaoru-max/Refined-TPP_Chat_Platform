@@ -31,34 +31,36 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 
 *"Chat-RefinedTPP" features an intelligent agent that streamlines the transition from raw DB-search data to biological insights:*
 
-**1️⃣ Automated Interpretation**: Interprets complex experimental designs and determines replicate structures (Bio vs. Tech) without manual tagging.
+- **1️⃣ Automated Interpretation**: Interprets complex experimental designs and determines replicate structures (Bio vs. Tech) without manual tagging.
 
-**2️⃣ Dynamic Routing**: Automatically selects the optimal processing pipeline from our 8-branch architecture.
+- **2️⃣ Dynamic Routing**: Automatically selects the optimal processing pipeline from our 8-branch architecture.
 
-**3️⃣ Standardized Treatment**: Ensures that every dataset, regardless of its origin, undergoes a consistent and rigorous statistical treatment to eliminate human bias.
+- **3️⃣ Standardized Treatment**: Ensures that every dataset, regardless of its origin, undergoes a consistent and rigorous statistical treatment to eliminate human bias.
 <br>
 
 🛡️ <strong>Robust Statistical Framework</strong>
 
 *Our platform implements a pipeline specifically engineered for thermal proteome profiling–derived stability metrics:*
 
-**1️⃣ Advanced Normalization**: Features Vehicle-anchored median normalization to eliminate systemic batch effects across TMT-plexes and conditions.
+- **1️⃣ Advanced Normalization**: Features Vehicle-anchored median normalization to eliminate systemic batch effects across TMT-plexes and conditions.
 
-**2️⃣ Multi-Level Modeling**: Includes replicate-level ΔRm calculation and ΔRm normality testing prior to final inference.
+- **2️⃣ Multi-Level Modeling**: Includes replicate-level ΔRm calculation and ΔRm normality testing prior to final inference.
 
-**3️⃣ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential analysis even in experiments without biological replicates (when ΔRm is normally distributed across proteins/N-glycosites).
+- **3️⃣ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential analysis even in experiments without biological replicates (when ΔRm is normally distributed across proteins/N-glycosites).
 
-**4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low false discovery rate.
+- **4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low false discovery rate.
 <br>
 
 📈 <strong>Interactive Data Quality Control</strong>
+
 *Bridging the gap between "black-box" analysis and researcher intuition:*
 
-**1️⃣ Visual Profiling**: Real-time Rm value's CV distribution visualization across all proteins/N-glycosites.
+- **1️⃣ Visual Profiling**: Real-time Rm value's CV distribution visualization across all proteins/N-glycosites.
 
-**2️⃣ Interactive Thresholding**: Users can set custom CV cutoffs to automatically prune low-quality quantified proteins/N-glycosites.
+- **2️⃣ Interactive Thresholding**: Users can set custom CV cutoffs to automatically prune low-quality quantified proteins/N-glycosites.
 
-**3️⃣ Reliability Assurance**: Guarantees that downstream analysis is built upon dta with high reproducibility and completeness.
+- **3️⃣ Reliability Assurance**: Guarantees that downstream analysis is built upon dta with high reproducibility and completeness.
+<br>
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
