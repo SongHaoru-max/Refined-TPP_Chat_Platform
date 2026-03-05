@@ -27,7 +27,27 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 
 ---
 ## 🛠️ Key Features (Core Capabilities)
+✨🤖 <strong>AI-Assisted Workflow Selection</strong>
 
+"Chat-RefinedTPP" features an intelligent agent that streamlines the transition from raw DB-search data to biological insights:
+
+**① Automated Interpretation**: Interprets complex experimental designs and determines replicate structures (Bio vs. Tech) without manual tagging.
+
+**② Dynamic Routing**: Automatically selects the optimal processing pipeline from our 8-branch architecture.
+
+**③ Standardized Treatment**: Ensures that every dataset, regardless of its origin, undergoes a consistent and rigorous statistical treatment to eliminate human bias.
+
+🛡️ <strong>Robust Statistical Framework</strong>
+
+Our platform implements a pipeline specifically engineered for thermal proteome profiling–derived stability metrics:
+
+**❶ Advanced Normalization**: Features Vehicle-anchored median normalization to eliminate systemic batch effects across TMT plexes.
+
+**❷ Multi-Level Modeling**: Includes replicate-level $R_m$ calculation and $\Delta R_m$ normality testing prior to final inference.
+
+**❸ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential stability detection even in experiments without biological replicates.
+
+**❹ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low discovery rate.
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
