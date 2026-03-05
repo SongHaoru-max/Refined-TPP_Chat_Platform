@@ -38,7 +38,7 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 - **3️⃣ Standardized Treatment**: Ensures that every dataset, regardless of its origin, undergoes a consistent and rigorous statistical treatment to eliminate human bias.
 <br>
 
-🛡️ <strong>Robust Statistical Framework</strong>
+🛡️ <strong>Adaptive Statistical Framework</strong>
 
 *Our platform implements a pipeline specifically engineered for thermal proteome profiling–derived stability metrics:*
 
