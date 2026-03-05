@@ -48,7 +48,7 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 
 **3️⃣ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential analysis even in experiments without biological replicates (when ΔRm is normally distributed across proteins/N-glycosites).
 
-**4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low discovery rate.
+**4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low false discovery rate.
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
