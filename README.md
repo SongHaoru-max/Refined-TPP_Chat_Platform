@@ -1,4 +1,4 @@
-# Chatt-RefinedTPP Platform
+# Chat-RefinedTPP Platform
 AI Agent–Driven Processing and Analysis Platform for Raw Refined-TPP Quantitative Proteomics
 
 
