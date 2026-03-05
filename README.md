@@ -18,6 +18,12 @@
 </div>
 
 ---
+## 📖 Introduction
+**Chat-RefinedTPP** is an AI-assisted analysis platform for Refined-TPP experiments, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
+
+The platform integrates intelligent experiment interpretation, robust statistical modeling, and specialized workflows for protein- and N-glycosite-level analyses, enabling researchers to analyze Refined-TPP data with minimal manual configuration.
+
+---
 ## 🧭 Decision Matrix (8-Branch Architecture)
 
 Our platform automatically routes your data through a **Triple-Layer Logic Gate**. Select your branch based on omics type and replicate design.
