@@ -55,12 +55,22 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 
 *Bridging the gap between "black-box" analysis and researcher intuition:*
 
-- **1️⃣ Visual Profiling**: Real-time Rm value's CV distribution visualization across all proteins/N-glycosites.
+- **1️⃣ Visual Profiling**: Real-time Rm values' CV distribution visualization across all proteins/N-glycosites.
 
 - **2️⃣ Interactive Thresholding**: Users can set custom CV cutoffs to automatically prune low-quality quantified proteins/N-glycosites.
 
 - **3️⃣ Reliability Assurance**: Guarantees that downstream analysis is built upon dta with high reproducibility and completeness.
 <br>
+
+🔍 <strong>Flexible Experimental Design Support</strong>
+
+*Supporting multiple Refined-TPP experimental configurations, including experiments with or without biological replicates and technical replicates:*
+
+- **1️⃣ Both protein-level and site-level proteomics datasets are supported**
+
+- **2️⃣ Site Parsing**: Native extraction of N-glycosylation sites directly from database search result strings (e.g., PEAKS) combined with .fasta file.
+
+- **3️⃣ Site-level quantitative QC**: Tailored filtering and normalization optimized for the unique noise profiles of PTM datasets to ensure site-level precision.
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
