@@ -8,7 +8,7 @@ AI Agent–Driven Processing and Analysis Platform for Raw Refined-TPP Quantitat
   <img src="assets/Logo.png" width="120" height="120" alt="RefinedTPP Logo">
   <br />
   <p align="center">
-    <b>Next-Generation Preprocessing & $R_m$ Value Analysis Pipeline</b>
+    <b>Next-Generation Refined TPP quantitative data Preprocessing & QC & ΔRm Value Analysis Pipeline</b>
     <br />
     <i>Empowering high-precision quantitative proteomics with robust AI-agent collaboration.</i>
   </p>
