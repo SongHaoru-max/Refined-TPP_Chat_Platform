@@ -18,7 +18,6 @@
 </div>
 
 ---
-
 ## 🧭 Decision Matrix (8-Branch Architecture)
 
 Our platform automatically routes your data through a **Triple-Layer Logic Gate**. Select your branch based on omics type and replicate design.
@@ -29,7 +28,7 @@ graph TD
     Start((<b>START</b>)) --> Type{<b>Omics Mode</b>}
     
     Type -- "Bulk Proteomics" --> P_Bio{Bio Reps?}
-    Type -- "N-Glycosite modification" --> G_Bio{Bio Reps?}
+    Type -- "N-Glycosite" --> G_Bio{Bio Reps?}
     
     %% Proteomics Sub-tree
     P_Bio -- Yes --> P_Tech_Y{Tech Reps?}
