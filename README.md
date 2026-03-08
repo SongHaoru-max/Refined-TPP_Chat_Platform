@@ -143,14 +143,14 @@ These combinations naturally lead to the **8-branch analysis architecture illust
 Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
 
 ## ⚙️ Supported Pipelines
-| Branch | Pipeline | Omics Type | Tech Rep | Bio Rep | Documentation |
+| Branch | Pipeline | Omics Type | Tech Rep | Bio Rep | Detailed Information |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **01** | **P1** | Bulk Proteome | ✅ | ✅ | [View Link](#) |
-| **02** | **P2** | Bulk Proteome | ❌ | ✅ | [View Link](#) |
-| **03** | **P3** | Bulk Proteome | ✅ | ❌ | [View Link](#) |
-| **04** | **P4** | Bulk Proteome | ❌ | ❌ | [View Link](#) |
-| **05** | **G1** | N-glycosite-level | ✅ | ✅ | [View Link](#) |
-| **06** | **G2** | N-glycosite-level | ❌ | ✅ | [View Link](#) |
-| **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](#) |
-| **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](#) |
+| **01** | **P1** | Bulk Proteome | ✅ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch01_P1.md) |
+| **02** | **P2** | Bulk Proteome | ❌ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch02_P2.md) |
+| **03** | **P3** | Bulk Proteome | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch03_P3.md) |
+| **04** | **P4** | Bulk Proteome | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch04_P4.md) |
+| **05** | **G1** | N-glycosite-level | ✅ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch05_G1.md) |
+| **06** | **G2** | N-glycosite-level | ❌ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch06_G2.md) |
+| **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch07_G3.md) |
+| **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch08_G4.md) |
 
