@@ -19,7 +19,7 @@
 
 ---
 ## 📖 Introduction
-**Chat-RefinedTPP** is an **AI-assisted analysis platform for [Refined-TPP](https://pubs.acs.org/doi/10.1021/jacs.5c08065) (*J. Am. Chem. Soc*. 2025, *147*, 27, 24127–24139) experiments**, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
+**Chat-RefinedTPP** is an **AI-assisted analysis platform for [Refined-TPP](https://pubs.acs.org/doi/10.1021/jacs.5c08065) (*J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139) experiments**, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
 
 The platform integrates **intelligent experiment interpretation**, **robust statistical modeling**, and **specialized workflows for protein- and N-glycosite-level analyses**, enabling researchers to analyze Refined-TPP data with minimal manual configuration.
 
@@ -119,7 +119,7 @@ graph TD
 ```
 **Why we use 8-Branch Architexture?**
 
-Unlike classical TPP based on melting-curve fitting such as TPP-TR, Refined-TPP adopts a non-parametric analysis strategy that does not require explicit melting-curve fitting. Instead, the method focuses on ΔRm-based stablity metrics, enabling robust comparision of protein stablity shifts between conditions without assuming a predefined thermodynamic model (such as 4PL-logistic in TPP-TR). 
+Unlike classical TPP based on melting-curve fitting such as [TPP-TR](https://www.science.org/doi/10.1126/science.1255784) (Mikhail M. Savitski et al. *Science* **2014**, *346*, 1255784), **Refined-TPP adopts a non-parametric analysis strategy** that does not require explicit melting-curve fitting. Instead, the method focuses on **ΔRm-based** stablity metrics, enabling robust comparision of protein stablity shifts between conditions **without assuming a predefined thermodynamic model** (such as 4PL-logistic in TPP-TR). 
 
 <div align="center">
   <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="500">
@@ -127,17 +127,17 @@ Unlike classical TPP based on melting-curve fitting such as TPP-TR, Refined-TPP 
   **Principle of Refined-TPP (*J. Am. Chem. Soc*. 2025)**
 </div>
 
-But on the other hand, the Refined-TPP framework avoid parametric curve fitting, in other words, the observed stability of proteins mainly relys on the accuracy of sampling and data acquisition with lower statistical power compared with parametric analysis, technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation; as well, biological replicates are recommend to verify the final results. However, the optimal experiment design ultimately depends on:
+But on the other hand, the Refined-TPP framework avoids parametric curve fitting, in other words, the observed stability of proteins mainly relys on the **accuracy of sampling and data acquisition** with lower statistical power compared to parametric analysis, **technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation**; as well, **biological replicates are recommend to verify the final results**. However, the optimal experiment design ultimately depends on:
 
-- Biological objective of the study
-- Avaliable experiment budget
-- Desired statistical rigor
+- **Biological objective** of the study
+- **Avaliable experiment budget**
+- **Desired statistical rigor**
 
-to accommodate these practical considerations Chat-RefinedTPP Platform supports multiple experimental configurations built around the presence of:
+to accommodate these practical considerations, **Chat-RefinedTPP Platform supports multiple experimental configurations** built around the presence of:
 
-- Technical replicates
-- Biological replicates
+- **Technical replicates**
+- **Biological replicates**
 
-These combinations naturally lead to the 8-branch analysis architecture illustrated above, enabling researchers to select the appropriate workflow according to their experimental design.
+These combinations naturally lead to the **8-branch analysis architecture illustrated above**, enabling researchers to select the appropriate workflow according to their experimental design.
 
-Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
+Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as below.
