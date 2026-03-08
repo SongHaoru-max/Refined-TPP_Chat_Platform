@@ -123,6 +123,8 @@ Unlike classical TPP based on melting-curve fitting such as TPP-TR, Refined-TPP 
 
 <div align="center">
   <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="500">
+  
+  **Principle of Refined-TPP (*J. Am. Chem. Soc*. 2025)**
 </div>
 
 But on the other hand, the Refined-TPP framework avoid parametric curve fitting, in other words, the observed stability of proteins mainly relys on the accuracy of sampling and data acquisition with lower statistical power compared with parametric analysis, technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation; as well, biological replicates are recommend to verify the final results. However, the optimal experiment design ultimately depends on:
