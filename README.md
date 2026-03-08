@@ -74,7 +74,6 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 
 ---
 ## 🧭 Decision Matrix (8-Branch Architecture)
-
 Our platform automatically routes your data through a **Triple-Layer Logic Gate**. Select your branch based on omics type and replicate design.
 
 ```mermaid
@@ -116,3 +115,23 @@ graph TD
     class B1 highlight;
     class B6 original;
     style Start fill:#1e293b,color:#fff,stroke:#0f172a
+
+```
+**Why we use 8-Branch Architexture?**
+
+Unlike classical TPP based on melting-curve fitting such as TPP-TR, Refined-TPP adopts a non-parametric analysis strategy that does not require explicit melting-curve fitting. Instead, the method focuses on ΔRm-based stablity metrics, enabling robust comparision of protein stablity shifts between conditions without assuming a predefined thermodynamic model (such as 4PL-logistic in TPP-TR). 
+
+But on the other hand, the Refined-TPP framework avoid parametric curve fitting, in other words, the observed stability of proteins mainly relys on the accuracy of sampling and data acquisition with lower statistical power compared with parametric analysis, technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation; as well, biological replicates are recommend to verify the final results. However, the optimal experiment design ultimately depends on:
+
+- Biological objective of the study
+- Avaliable experiment budget
+- Desired statistical rigor
+
+to accommodate these practical considerations Chat-RefinedTPP Platform supports multiple experimental configurations built around the presence of:
+
+- Technical replicates
+- Biological replicates
+
+These combinations naturally lead to the 8-branch analysis architecture illustrated above, enabling researchers to select the appropriate workflow according to their experimental design.
+
+All branches are implemented as modular piplines (Python scripts), summarized below.
