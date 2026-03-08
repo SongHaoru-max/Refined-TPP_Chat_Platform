@@ -117,7 +117,7 @@ graph TD
     style Start fill:#1e293b,color:#fff,stroke:#0f172a
 
 ```
-**Why we use 8-Branch Architexture?**
+**Why we use 8-Branch Architecture?**
 
 Unlike classical TPP based on melting-curve fitting such as [TPP-TR](https://www.science.org/doi/10.1126/science.1255784) (Mikhail M. Savitski et al. *Science* **2014**, *346*, 1255784), **Refined-TPP adopts a non-parametric analysis strategy** that does not require explicit melting-curve fitting. Instead, the method focuses on **ΔRm-based** stablity metrics, enabling robust comparision of protein stablity shifts between conditions **without assuming a predefined thermodynamic model** (such as 4PL-logistic in TPP-TR). 
 
@@ -141,3 +141,16 @@ to accommodate these practical considerations, **Chat-RefinedTPP Platform suppor
 These combinations naturally lead to the **8-branch analysis architecture illustrated above**, enabling researchers to select the appropriate workflow according to their experimental design.
 
 Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
+
+## ⚙️ Supported Pipelines
+| Branch | Pipeline | Omics Type | Tech Rep | Bio Rep | Documentation |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **01** | **P1** | Bulk Proteome | ✅ | ✅ | [View Link](#) |
+| **02** | **P2** | Bulk Proteome | ❌ | ✅ | [View Link](#) |
+| **03** | **P3** | Bulk Proteome | ✅ | ❌ | [View Link](#) |
+| **04** | **P4** | Bulk Proteome | ❌ | ❌ | [View Link](#) |
+| **05** | **G1** | N-glycosite-level | ✅ | ✅ | [View Link](#) |
+| **06** | **G2** | N-glycosite-level | ❌ | ✅ | [View Link](#) |
+| **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](#) |
+| **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](#) |
+
