@@ -140,4 +140,4 @@ to accommodate these practical considerations, **Chat-RefinedTPP Platform suppor
 
 These combinations naturally lead to the **8-branch analysis architecture illustrated above**, enabling researchers to select the appropriate workflow according to their experimental design.
 
-Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as below.
+Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
