@@ -19,7 +19,7 @@
 
 ---
 ## 📖 Introduction
-**Chat-RefinedTPP** is an **AI-assisted analysis platform for [Refined-TPP] (https://pubs.acs.org/doi/10.1021/jacs.5c08065) (*J. Am. Chem. Soc*. 2025, *147*, 27, 24127–24139) experiments**, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
+**Chat-RefinedTPP** is an **AI-assisted analysis platform for [Refined-TPP](https://pubs.acs.org/doi/10.1021/jacs.5c08065) (*J. Am. Chem. Soc*. 2025, *147*, 27, 24127–24139) experiments**, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
 
 The platform integrates **intelligent experiment interpretation**, **robust statistical modeling**, and **specialized workflows for protein- and N-glycosite-level analyses**, enabling researchers to analyze Refined-TPP data with minimal manual configuration.
 
