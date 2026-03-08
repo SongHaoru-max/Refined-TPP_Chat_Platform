@@ -121,6 +121,10 @@ graph TD
 
 Unlike classical TPP based on melting-curve fitting such as TPP-TR, Refined-TPP adopts a non-parametric analysis strategy that does not require explicit melting-curve fitting. Instead, the method focuses on ΔRm-based stablity metrics, enabling robust comparision of protein stablity shifts between conditions without assuming a predefined thermodynamic model (such as 4PL-logistic in TPP-TR). 
 
+<div align="center">
+  <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="200">
+</div>
+
 But on the other hand, the Refined-TPP framework avoid parametric curve fitting, in other words, the observed stability of proteins mainly relys on the accuracy of sampling and data acquisition with lower statistical power compared with parametric analysis, technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation; as well, biological replicates are recommend to verify the final results. However, the optimal experiment design ultimately depends on:
 
 - Biological objective of the study
@@ -134,4 +138,4 @@ to accommodate these practical considerations Chat-RefinedTPP Platform supports 
 
 These combinations naturally lead to the 8-branch analysis architecture illustrated above, enabling researchers to select the appropriate workflow according to their experimental design.
 
-All branches are implemented as modular piplines (Python scripts), summarized below.
+Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
