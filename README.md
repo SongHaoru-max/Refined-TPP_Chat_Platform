@@ -269,4 +269,5 @@ Refined-TPP_Chat_Platform/
 ---
 
 **Last updated**: March 9, 2026
-Version: 1.0.0
+
+**Version**: 1.0.0
