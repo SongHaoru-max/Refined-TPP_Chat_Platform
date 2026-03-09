@@ -278,7 +278,7 @@ Refined-TPP_Chat_Platform/
 ---
 ## 🤝 Contributing
 
-We welcome contributions to the **Refined-TPP+** platform! To maintain analytical rigor and system stability, please follow our structured collaboration workflow:
+We welcome contributions to the **Chat-RefinedTPP** platform! To maintain analytical rigor and system stability, please follow our structured collaboration workflow:
 
 ### Collaboration Channels
 * **Report Bugs**: Encountered an issue? Open a [**Bug Report**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new?template=bug_report.md).
@@ -297,6 +297,17 @@ Before submitting a Pull Request, please ensure you have reviewed our [**Contrib
 
 ---
 ## 📜 License
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+This project is licensed under the **Apache License 2.0**. 
+
+Copyright © 2026 **Haoru Song** and the **Chat-RefinedTPP Contributors**.
+
+> [!NOTE]
+> Under the Apache 2.0 License, you are free to use, modify, and distribute this software. However, any derivative works involving the multi-branch routing architecture or Rm values' CV-controlled quality control sequences must retain original attribution notices, in accordance with the Apache 2.0 License.
+
+For the full legal text, please refer to the [LICENSE](./LICENSE) file.
 
 ---
 ## 📚 Citation
