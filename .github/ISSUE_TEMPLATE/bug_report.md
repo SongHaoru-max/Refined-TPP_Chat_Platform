@@ -1,8 +1,8 @@
 ---
-name: "🐛 Bug Report"
-about: "Report a data processing error or AI Agent interaction issue"
-title: "[BUG] "
-labels: bug
+Name: "🐛 Bug Report"
+About: "Report a data processing error or AI Agent interaction issue"
+Title: "[BUG] "
+Labels: bug
 ---
 
 **1. Describe the Bug**
