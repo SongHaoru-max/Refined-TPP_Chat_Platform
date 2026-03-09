@@ -269,8 +269,8 @@ Refined-TPP_Chat_Platform/
     <td><a href="https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm">Haojie Lu Lab</a>, Fudan University</td>
   </tr>
   <tr>
-    <td><b>GitHub Issues</b></td>
-    <td>For bug reports and feature requests, please open an issue [here]<a href="https://github.com/SongHaoru-max">@SongHaoru-max</a></td>
+    <td><b>GitHub Issues Feedback</b></td>
+    <td>For bug reports and feature requests, please open an issue <a href="https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new/choose">here</a></td>
   </tr>
 </table>
 
