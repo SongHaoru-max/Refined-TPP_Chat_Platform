@@ -156,7 +156,9 @@ Each branch is implemented as a standalone modular pipeline, invoked via its cor
 
 ## 🔄 Workflow Overview
 
-### 📱 For Web Platform Users (<font color="#0099ff">Please Note: Web Platform Only for academic use!!</font>⚠️⚠️)
+### 📱 For Web Platform Users
+
+***⚠️⚠️ Please Note: Web Platform Only for academic use!!***
 
 <div align="center"> 
   <img src="assets/Chat-RefinedTPP Workflow.png" alt="Chat-RefinedTPP System Workflow" width="600">
