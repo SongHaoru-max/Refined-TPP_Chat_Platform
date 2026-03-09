@@ -305,7 +305,7 @@ This project is licensed under the **Apache License 2.0**.
 Copyright © 2026 **Haoru Song** and the **Chat-RefinedTPP Contributors**.
 
 > [!NOTE]
-> Under the Apache 2.0 License, you are free to use, modify, and distribute this software. However, any derivative works involving the multi-branch routing architecture or Rm values' CV-controlled quality control sequences must retain original attribution notices, in accordance with the Apache 2.0 License.
+> Under the Apache 2.0 License, you are free to use, modify, and distribute this software. However, any derivative works involving the **multi-branch routing architecture** or **Rm values' CV-controlled quality control sequences** must retain original attribution notices, in accordance with the Apache 2.0 License.
 
 For the full legal text, please refer to the [LICENSE](./LICENSE) file.
 
