@@ -26,6 +26,12 @@ The platform integrates **intelligent experiment interpretation**, **robust stat
 <strong>Simply input your raw DB-search results, and let the AI agent route your data through the optimal pipeline!!</strong>
 
 ---
+## 🚀 Quick Start
+
+---
+## 💡 Quick Example
+
+---
 ## 🛠️ Key Features (Core Capabilities)
 ✨🤖 <strong>AI-Assisted Workflow Selection</strong>
 
@@ -142,6 +148,7 @@ These combinations naturally lead to the **8-branch analysis architecture illust
 
 Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
 
+---
 ## ⚙️ Supported Pipelines
 | Branch | Pipeline | Omics Type | Tech Rep | Bio Rep | Detailed Information |
 | :--- | :--- | :--- | :---: | :---: | :--- |
@@ -154,6 +161,7 @@ Each branch is implemented as a standalone modular pipeline, invoked via its cor
 | **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch07_G3.md) |
 | **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch08_G4.md) |
 
+---
 ## 🔄 Workflow Overview
 
 ### 📱 For Web Platform Users
@@ -188,3 +196,77 @@ If you want to deploy the platform locally or extend it with custom pipelines, p
 
 ---
 ## 📁 Project Structure
+
+```
+Refined-TPP_Chat_Platform/
+├── frontend/                    # Web interface
+│   ├── src/
+│   │   ├── components/         # React components
+│   │   ├── pages/              # Web pages
+│   │   └── ...
+│   └── package.json
+│
+├── backend/                     # Backend API & AI Agent
+│   ├── agent/                  # AI Agent logic
+│   ├── api/                    # REST API endpoints
+│   ├── app.py                  # Main Flask app
+│   └── ...
+│
+├── pipelines/                   # 8-branch analysis pipelines
+│   ├── Branch01_P1.md          # P1 pipeline documentation
+│   ├── Branch02_P2.md
+│   ├── ...
+│   └── Branch08_G4.md
+│
+├── src/                         # Core Python modules
+│   ├── normalization.py        # Normalization methods
+│   ├── statistical_analysis.py # Statistical tests
+│   ├── visualization.py        # Plotting functions
+│   └── ...
+│
+├── assets/                      # Images and resources
+│   ├── Logo.png
+│   ├── Chat-RefinedTPP Workflow.png
+│   ├── RefinedTPP-Principle.png
+│   └── ...
+│
+├── examples/                    # Example data and scripts
+│   ├── sample_data_P1.csv
+│   ├── sample_data_G2.csv
+│   └── ...
+│
+├── tests/                       # Unit tests
+│   ├── test_normalization.py
+│   ├── test_statistical_analysis.py
+│   └── ...
+│
+├── requirements.txt             # Python dependencies
+├── README.md                    # This file
+└── LICENSE
+```
+---
+## 📊 Data Format
+
+---
+## ❓ FAQ
+
+---
+## 📧 Support & Contact
+
+---
+## 🤝 Contributing
+
+---
+## 📜 License
+
+---
+## 📚 Citation
+
+---
+## 🙏 Acknowledgments
+
+
+---
+
+**Last updated**: March 9, 2026
+Version: 1.0.0
