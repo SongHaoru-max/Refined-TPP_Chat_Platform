@@ -122,7 +122,7 @@ graph TD
 Unlike classical TPP based on melting-curve fitting such as [TPP-TR](https://www.science.org/doi/10.1126/science.1255784) (Mikhail M. Savitski et al. *Science* **2014**, *346*, 1255784), **Refined-TPP adopts a non-parametric analysis strategy** that does not require explicit melting-curve fitting. Instead, the method focuses on **ΔRm-based** stablity metrics, enabling robust comparision of protein stablity shifts between conditions **without assuming a predefined thermodynamic model** (such as 4PL-logistic in TPP-TR). 
 
 <div align="center">
-  <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="500">
+  <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="600">
   
   **Principle of Refined-TPP (*J. Am. Chem. Soc*. 2025)**
 </div>
@@ -154,3 +154,34 @@ Each branch is implemented as a standalone modular pipeline, invoked via its cor
 | **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch07_G3.md) |
 | **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch08_G4.md) |
 
+## 🔄 Workflow Overview
+
+### 📱 For Web Platform Users
+<div align="center"> 
+  <img src="assets/Chat-RefinedTPP Workflow.png" alt="Chat-RefinedTPP System Workflow" width="600">
+  
+  **Web Platform Workflow: From Data Upload to Results Download**
+</div>
+
+**[Webpage address]**:[https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
+
+**How It Works:**
+
+1. 📤 **Upload Your Data**: Submit your raw DB-search results or preprocessed proteomics data to the [web platform](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
+2. 🤖 **AI Agent Analysis**: The intelligent agent communicates with you to understand your experimental design
+3. 🔀 **Automatic Pipeline Selection**: System analyzes your data structure and automatically selects the optimal analysis branch
+4. ⚙️ **Backend Processing**: Python scripts execute the statistical analysis and data quality control
+5. 📊 **Download Results**: Get comprehensive analysis results with visualizations and statistical summaries
+
+> ✨ **No coding required!** Just upload, chat with AI, and download results.
+
+### 💻 For Developers (Local Deployment)
+
+If you want to deploy the platform locally or extend it with custom pipelines, please refer to:
+- **[Installation Guide](#-installation-for-developers)** - Step-by-step setup instructions
+- **[Project Structure](#-project-structure)** - Understanding the codebase
+- **[Pipeline Details](./pipelines/)** - How to modify or create new analysis branches
+- **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute improvements
+
+
+## 📁 Project Structure
