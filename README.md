@@ -9,7 +9,7 @@
     <i>Empowering high-precision quantitative proteomics with robust AI-agent collaboration.</i>
   </p>
   
-  <b>Developer & Maintainer: Haoru Song (宋昊儒）</b>
+  <b>Principal Developer & Maintainer: Haoru Song (宋昊儒）</b>
 
   [![License](https://img.shields.io/badge/License-Academic%20Only-indigo.svg)](https://opensource.org/licenses/MIT)
   [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -252,6 +252,28 @@ Refined-TPP_Chat_Platform/
 
 ---
 ## 📧 Support & Contact
+<table>
+  <tr>
+    <td><b>Author</b></td>
+    <td>Haoru Song (宋昊儒)</td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Email</b></td>
+    <td>
+      Personal: <a href="mailto:songhaoru233@gmail.com">songhaoru233@gmail.com</a><br>
+      University: <a href="mailto:hrsong23@m.fudan.edu.cn">hrsong23@m.fudan.edu.cn</a>
+    </td>
+  </tr>
+  <tr>
+    <td><b>Lab</b></td>
+    <td><a href="https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm">Haojie Lu Lab</a>, Fudan University</td>
+  </tr>
+  <tr>
+    <td><b>GitHub Issues</b></td>
+    <td>For bug reports and feature requests, please open an issue [here]<a href="https://github.com/SongHaoru-max">@SongHaoru-max</a></td>
+  </tr>
+</table>
+
 
 ---
 ## 🤝 Contributing
