@@ -20,7 +20,7 @@ To contribute code, you will need to set up your local environment.
 We welcome code contributions! When submitting a PR, please follow these guidelines to ensure system stability:
 
 1. **Test Your Code**: Ensure that your changes do not break the existing 8-branch routing logic.
-2. **Data Consistency**: If modifying analytical scripts, verify that both bulk protein and N-glycosite pipelines (including the CV quality control steps) execute correctly.
+2. **Data Consistency**: If modifying analytical scripts, verify that both bulk proteome and N-glycosite pipelines (including the CV quality control steps) execute correctly.
 3. **Documentation**: Update the README or inline code comments if you are changing user-facing features.
 4. **Descriptive Commit Messages**: Use clear commit messages explaining *what* and *why* you changed something.
 
