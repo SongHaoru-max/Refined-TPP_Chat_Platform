@@ -4,7 +4,7 @@
   <img src="assets/Logo.png" width="120" height="120" alt="RefinedTPP Logo">
   <br />
   <p align="center">
-    <b>Next-Generation Refined-TPP quantitative data Preprocessing & QC & ΔRm Value Analysis Pipeline</b>
+    <b>Next-Generation Refined-TPP Quantitative Data Preprocessing & QC & ΔRm Value Analysis Pipeline</b>
     <br />
     <i>Empowering high-precision quantitative proteomics with robust AI-agent collaboration.</i>
   </p>
