@@ -11,7 +11,7 @@
   
   <b>Principal Developer & Maintainer: Haoru Song (宋昊儒）</b>
 
-  [![License](https://img.shields.io/badge/License-Academic%20Only-indigo.svg)](https://opensource.org/licenses/MIT)
+  [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
   [![Lab](https://img.shields.io/badge/Lab-Haojie%20Lu%20Lab-emerald.svg)](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)
   [![Venue](https://img.shields.io/badge/JACS-2025-orange.svg)](https://pubs.acs.org/doi/10.1021/jacs.5c08065)
