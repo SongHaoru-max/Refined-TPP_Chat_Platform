@@ -156,14 +156,14 @@ Each branch is implemented as a standalone modular pipeline, invoked via its cor
 
 ## 🔄 Workflow Overview
 
-### 📱 For Web Platform Users
+### 📱 For Web Platform Users (<span style="color: red;">Please Note: Web Platform Only for academic use!!</span>)
 <div align="center"> 
   <img src="assets/Chat-RefinedTPP Workflow.png" alt="Chat-RefinedTPP System Workflow" width="600">
   
   **Web Platform Workflow: From Data Upload to Results Download**
 </div>
 
-**[Webpage address]**:[https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
+**[Webpage address]**: [https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
 
 **How It Works:**
 
@@ -183,5 +183,5 @@ If you want to deploy the platform locally or extend it with custom pipelines, p
 - **[Pipeline Details](./pipelines/)** - How to modify or create new analysis branches
 - **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute improvements
 
-
+---
 ## 📁 Project Structure
