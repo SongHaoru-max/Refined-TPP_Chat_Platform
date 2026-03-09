@@ -288,7 +288,7 @@ We welcome contributions to the **Refined-TPP+** platform! To maintain analytica
 ### Development Workflow
 Before submitting a Pull Request, please ensure you have reviewed our [**Contributing Guidelines**](./CONTRIBUTING.md) and meet the following criteria:
 
-1.  **Logic Integrity**: Changes must not disrupt the **8-branch architecture** routing (Bulk Proteomics vs. N-Glycosite).
+1.  **Logic Integrity**: Changes must not disrupt the **8-branch architecture** routing (Bulk Proteome vs. N-Glycosite).
 2.  **QC Sequence**: The **CV (Coefficient of Variation)** quality control step must remain strictly positioned *after* unique peptide filtering and *before* differential analysis.
 3.  **Data Validation**: Any modifications to the N-glycosylation pipeline must be verified using both database search results and `.fasta` sequence files.
 
