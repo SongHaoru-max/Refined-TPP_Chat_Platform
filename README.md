@@ -283,7 +283,7 @@ We welcome contributions to the **Chat-RefinedTPP** platform! To maintain analyt
 ### Collaboration Channels
 * **Report Bugs**: Encountered an issue? Open a [**Bug Report**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new?template=bug_report.md).
 * **Request Features**: Have ideas for new algorithms? Submit a [**Feature Request**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new?template=feature_request.md).
-* **Academic Inquiries**: For private research discussions or sensitive data support (e.g., specific N-glycosite retrieval logic), please refer directly to our [**Support & Contact**](#support--contact) section below.
+* **Academic Inquiries**: For private research discussions or sensitive data support (e.g., specific N-glycosite retrieval logic), please refer directly to our [**Support & Contact**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform#-support--contact) section above.
 
 ### Development Workflow
 Before submitting a Pull Request, please ensure you have reviewed our [**Contributing Guidelines**](./CONTRIBUTING.md) and meet the following criteria:
