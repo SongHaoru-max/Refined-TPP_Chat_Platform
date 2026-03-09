@@ -6,6 +6,7 @@ labels: bug
 ---
 
 **1. Describe the Bug**
+
 A clear and concise description of what the bug is (e.g., Agent fails to recognize replicates, or Branch 03 execution interrupted).
 
 **2. Experimental Design**
@@ -14,9 +15,11 @@ A clear and concise description of what the bug is (e.g., Agent fails to recogni
 - **Replicates**: [e.g., 2 Bio x 3 Tech]
 
 **3. Error Logs & Screenshots**
+
 If the backend console shows an error, please paste the logs here. For UI/Frontend issues, please upload a screenshot.
 
 **4. Expected Behavior**
+
 A clear description of what you expected to happen.
 
 **5. Environment (Optional)**
