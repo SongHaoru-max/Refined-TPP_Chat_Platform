@@ -1,6 +1,6 @@
 # Contributing to Chat-RefinedTPP Platform
 
-First off, welcome and thank you for considering contributing to Refined-TPP!! It's people like you that make this platform a powerful tool for the proteomics community!👍🙌
+First off, welcome and thank you for considering contributing to Chat-RefinedTPP!! It's people like you that make this platform a powerful tool for the proteomics community!👍🙌
 
 ## 🐛 Reporting Bugs & Suggesting Features
 We use GitHub Issues to track public bugs and feature requests. Please ensure your description is clear and has sufficient instructions to be able to reproduce the issue.
