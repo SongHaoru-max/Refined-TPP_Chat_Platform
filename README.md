@@ -329,20 +329,20 @@ The platform is **led and implemented by Haoru Song**, with contributions from c
 ### 🛠️Code Review & Refinement
 
 * **[Chenxin Li (李陈鑫)](https://github.com/cxli914)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/cxli914"></a> - *Fudan University*
-   * **Code refinement & debugging**
+   * **Code Refinement & Debugging**
    * Assisted in improving code structure, optimizing implementation details, and resolving bugs during development.
   
 * **[Bin Fu (付彬)](https://github.com/fubin1999)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/fubin1999"></a> - *Fudan University*
-   * **Code review**
+   * **Code Review**
    * Contributed to code inspection and structural improvements of the analysis scripts.
   
 ### ⚙️Backend Infrastructure & Technical Consultation
 
 * **[Wenjie Qiu (邱文杰)](https://www.lamda.nju.edu.cn/qiuwj/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/Shylock-H"></a> - *Nanjing University @ lAMDA*
-   * **Backend co-development & Technical consultation**
+   * **Backend Co-development & Technical Consultation**
 
 * **[Tianyi Zhang (张天一)](https://www.lamda.nju.edu.cn/zhangty/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/goldcook"></a> - *Nanjing University @ LAMDA*
-   * **Backend co-development & Technical consultation**
+   * **Backend Co-development & Technical Consultation**
 
 > **Special Note:** A heartfelt thanks to both colleagues for their invaluable personal support in setting up the backend infrastructure and providing expert consultation on system architecture and deployment.
 
@@ -357,7 +357,7 @@ It is our privilege to develop the **Chat-RefinedTPP** platform to provide a sta
 **Experimental Methodology Development:**
 
 * **[Guoli Wang (王国力)](LINK_IF_AVAILABLE)** - *Fudan University*
-   * **Experimental methodology development and verification**
+   * **Experimental Methodology Development and Verification**
 
 **Example Data Generation & Wet-Lab Validation:**
 * **[Hanxiang Xiao (萧瀚翔)](LINK_IF_AVAILABLE)** - *Fudan University* 
