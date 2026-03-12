@@ -338,7 +338,7 @@ The platform is **led and implemented by Haoru Song**, with contributions from c
   
 ### ⚙️Backend Infrastructure & Technical Consultation
 
-* **[Wenjie Qiu (邱文杰)](https://www.lamda.nju.edu.cn/qiuwj/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/Shylock-H"></a> - *Nanjing University @ lAMDA*
+* **[Wenjie Qiu (邱文杰)](https://www.lamda.nju.edu.cn/qiuwj/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/Shylock-H"></a> - *Nanjing University @ LAMDA*
    * **Backend Co-development & Technical Consultation**
 
 * **[Tianyi Zhang (张天一)](https://www.lamda.nju.edu.cn/zhangty/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/goldcook"></a> - *Nanjing University @ LAMDA*
