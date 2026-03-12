@@ -315,6 +315,62 @@ For the full legal text, please refer to the [LICENSE](./LICENSE) file.
 ---
 ## 🙏 Acknowledgments
 
+**Chat-RefinedTPP Platform** is primarily developed at the **Haojie Lu Lab, Department of Chemistry, Fudan University**.
+
+The platform is **led and implemented by Haoru Song**, with contributions from collaborators in code development, backend infrastructure, experimental methodology, and internal testing.
+
+### Core Development & Maintenance
+
+- **[Haoru Song (宋昊儒)](YOUR_LINK)** (Fudan University) — *Project Leader & Principal Developer and Maintainer*
+  
+  Designed and implemented the platform architecture, including the **8-branch modular pipeline**, AI-agent workflow routing, and the statistical framework for ΔRm-based Refined-TPP analysis.
+
+### Code Review & Refinement
+
+- **[Chenxin Li (李陈鑫)](LINK_IF_AVAILABLE)** (Fudan University) — *Code refinement & debugging*
+  
+  Assisted in improving code structure, optimizing implementation details, and resolving bugs during development.
+
+- **[Bin Fu (付彬)](LINK_IF_AVAILABLE)** (Fudan University) — *Code review*
+  
+  Contributed to code inspection and structural improvements of the analysis scripts.
+
+### Backend Infra Structure & Technical Consultation
+
+- **[Wenjie Qiu (邱文杰)](LINK_IF_AVAILABLE)** (Nanjing University) — *Backend co-development & Technical consultation*  
+- **[Tianyi Zhang (张天一)](LINK_IF_AVAILABLE)** (Nanjing University) — *Technical consultation & Technical consultation*
+
+Great thanks to both collaborators participated in backend infra structure setup and provided valuable suggestions on system architecture and deployment.
+
+### Experimental Methodology & Validation
+
+The **Refined-TPP experimental methodology** was established in the **Haojie Lu Lab** and reported in the article published on (**[Guoli Wang. et al. *J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139](https://pubs.acs.org/doi/10.1021/jacs.5c08065)**.)
+
+It's an honor for us to develope **Chat-RefinedTPP platform to facilitate standardized computational analysis of this experimental technique**.
+
+Experimental methodology was developed by:
+
+- **[Guoli Wang (王国力)](LINK_IF_AVAILABLE)** (Fudan University) — *Experimental methodology development and verification*
+
+We also acknowledge the contributions of laboratory members involved in experimental validation and data generation, including:
+
+- **[Hanxiang Xiao (萧瀚翔)](LINK_IF_AVAILABLE)** (Fudan University) 
+- **[Yisheng Wang (王奕升)](LINK_IF_AVAILABLE)**  (Fudan University)
+
+Their efforts in Refined-TPP sample preparation, mass spectrometry experiments, and data acquisition helped validate the analytical workflows implemented in this platform.
+
+### Community Feedback & Internal Testing
+
+We thank members of the **Haojie Lu Lab (Fudan University)** for valuable feedback during early **alpha and beta testing**, including suggestions for workflow optimization, usability improvements, and internal validation of the platform!
+
+### Academic Supervision & Research Support
+
+This work was conducted under the supervision and support of:
+
+- **[Prof. Haojie Lu](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)** — Fudan University  
+- **[Prof. Ying Zhang](LINK_IF_AVAILABLE)** — Fudan University  
+
+Thanks for their great support including experimental resources, and the platform maintenance funding as well as the seggestions during the development.
 
 ---
 
