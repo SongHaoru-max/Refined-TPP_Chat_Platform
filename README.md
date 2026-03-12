@@ -319,58 +319,64 @@ For the full legal text, please refer to the [LICENSE](./LICENSE) file.
 
 The platform is **led and implemented by Haoru Song**, with contributions from collaborators in code development, backend infrastructure, experimental methodology, and internal testing.
 
-### Core Development & Maintenance
+### 🚀Core Development & Maintenance
 
-- **[Haoru Song (宋昊儒)](YOUR_LINK)** (Fudan University) — *Project Leader & Principal Developer and Maintainer*
+* **[Haoru Song (宋昊儒)](https://songhaoru-max.github.io/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/SongHaoru-max"></a>- *Fudan University*
   
-  Designed and implemented the platform architecture, including the **8-branch modular pipeline**, AI-agent workflow routing, and the statistical framework for ΔRm-based Refined-TPP analysis.
-
-### Code Review & Refinement
-
-- **[Chenxin Li (李陈鑫)](LINK_IF_AVAILABLE)** (Fudan University) — *Code refinement & debugging*
+   * **Project Leader & Principal Developer and Maintainer**
+   * Designed and implemented the platform architecture, including the **8-branch modular pipeline**, AI-agent workflow routing, and the statistical framework for ΔRm-based Refined-TPP analysis.
   
-  Assisted in improving code structure, optimizing implementation details, and resolving bugs during development.
+### 🛠️Code Review & Refinement
 
-- **[Bin Fu (付彬)](LINK_IF_AVAILABLE)** (Fudan University) — *Code review*
+* **[Chenxin Li (李陈鑫)](https://github.com/cxli914)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/cxli914"></a> - *Fudan University*
+   * **Code refinement & debugging**
+   * Assisted in improving code structure, optimizing implementation details, and resolving bugs during development.
   
-  Contributed to code inspection and structural improvements of the analysis scripts.
+* **[Bin Fu (付彬)](https://github.com/fubin1999)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/fubin1999"></a> - *Fudan University*
+   * **Code review**
+   * Contributed to code inspection and structural improvements of the analysis scripts.
+  
+### ⚙️Backend Infrastructure & Technical Consultation
 
-### Backend Infra Structure & Technical Consultation
+* **[Wenjie Qiu (邱文杰)](https://www.lamda.nju.edu.cn/qiuwj/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/Shylock-H"></a> - *Nanjing University @ lAMDA*
+   * **Backend co-development & Technical consultation**
 
-- **[Wenjie Qiu (邱文杰)](LINK_IF_AVAILABLE)** (Nanjing University) — *Backend co-development & Technical consultation*  
-- **[Tianyi Zhang (张天一)](LINK_IF_AVAILABLE)** (Nanjing University) — *Technical consultation & Technical consultation*
+* **[Tianyi Zhang (张天一)](https://www.lamda.nju.edu.cn/zhangty/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/goldcook"></a> - *Nanjing University @ LAMDA*
+   * **Backend co-development & Technical consultation**
 
-Great thanks to both collaborators participated in backend infra structure setup and provided valuable suggestions on system architecture and deployment.
+> **Special Note:** A heartfelt thanks to both colleagues for their invaluable personal support in setting up the backend infrastructure and providing expert consultation on system architecture and deployment.
 
-### Experimental Methodology & Validation
+### 🧪Experimental Methodology & Validation
 
-The **Refined-TPP experimental methodology** was established in the **Haojie Lu Lab** and reported in the article published on (**[Guoli Wang. et al. *J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139](https://pubs.acs.org/doi/10.1021/jacs.5c08065)**.)
+The foundational **Refined-TPP experimental methodology** was established in the **Haojie Lu Lab** and formally reported in the *Journal of the American Chemical Society*:
 
-It's an honor for us to develope **Chat-RefinedTPP platform to facilitate standardized computational analysis of this experimental technique**.
+> 📖 **[Guoli Wang, et al. *J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139](https://pubs.acs.org/doi/10.1021/jacs.5c08065)**
 
-Experimental methodology was developed by:
+It is our privilege to develop the **Chat-RefinedTPP** platform to provide a standardized, computational workflow for this groundbreaking experimental technique.
 
-- **[Guoli Wang (王国力)](LINK_IF_AVAILABLE)** (Fudan University) — *Experimental methodology development and verification*
+**Experimental Methodology Development:**
 
-We also acknowledge the contributions of laboratory members involved in experimental validation and data generation, including:
+* **[Guoli Wang (王国力)](LINK_IF_AVAILABLE)** - *Fudan University*
+   * **Experimental methodology development and verification**
 
-- **[Hanxiang Xiao (萧瀚翔)](LINK_IF_AVAILABLE)** (Fudan University) 
-- **[Yisheng Wang (王奕升)](LINK_IF_AVAILABLE)**  (Fudan University)
+**Example Data Generation & Wet-Lab Validation:**
+* **[Hanxiang Xiao (萧瀚翔)](LINK_IF_AVAILABLE)** - *Fudan University* 
+* **[Yisheng Wang (王奕升)](LINK_IF_AVAILABLE)**  - *Fudan University*
 
-Their efforts in Refined-TPP sample preparation, mass spectrometry experiments, and data acquisition helped validate the analytical workflows implemented in this platform.
+* *Their rigorous efforts in bulk protein sample preparation, thermal treatment, mass spectrometry experiments, and data acquisition were crucial for validating the analytical workflows implemented in this platform.*
 
-### Community Feedback & Internal Testing
+### 💡Community Feedback & Internal Testing
 
-We thank members of the **Haojie Lu Lab (Fudan University)** for valuable feedback during early **alpha and beta testing**, including suggestions for workflow optimization, usability improvements, and internal validation of the platform!
+We extend our gratitude to the members of the **Haojie Lu Lab** for their extensive participation during the early **alpha and beta testing** phases. Your insights, feature suggestions, and rigorous stress-testing were instrumental in optimizing the workflow and improving the user interface!
 
-### Academic Supervision & Research Support
+### 🎓Academic Supervision & Research Support
 
-This work was conducted under the supervision and support of:
+This work was conducted under the profound supervision and support of:
 
-- **[Prof. Haojie Lu](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)** — Fudan University  
-- **[Prof. Ying Zhang](LINK_IF_AVAILABLE)** — Fudan University  
+* **[Prof. Haojie Lu (陆豪杰 教授)](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)** — *Fudan University*  
+* **[Prof. Ying Zhang (张莹 教授)](https://chemistry.fudan.edu.cn/08/6c/c45943a723052/page.htm)** — *Fudan University*  
 
-Thanks for their great support including experimental resources, and the platform maintenance funding as well as the seggestions during the development.
+> We deeply appreciate their guidance, the provision of essential experimental resources, funding for platform maintenance, and insightful suggestions throughout the entire development process!
 
 ---
 
