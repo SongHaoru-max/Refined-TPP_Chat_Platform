@@ -1,0 +1,385 @@
+# Chat-RefinedTPP Platform
+🤖 AI Agent–Driven Processing and Analysis Platform for Raw TMT-based Refined-TPP Quantitative Data
+<div align="center">
+  <img src="assets/Logo.png" width="120" height="120" alt="RefinedTPP Logo">
+  <br />
+  <p align="center">
+    <b>Next-Generation Refined-TPP Quantitative Data Preprocessing & QC & ΔRm Value Analysis Pipeline</b>
+    <br />
+    <i>Empowering high-precision quantitative proteomics with robust AI-agent collaboration.</i>
+  </p>
+  
+  <b>Principal Developer & Maintainer: Haoru Song (宋昊儒）</b>
+
+  [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+  [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+  [![Lab](https://img.shields.io/badge/Lab-Haojie%20Lu%20Lab-emerald.svg)](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)
+  [![Venue](https://img.shields.io/badge/JACS-2025-orange.svg)](https://pubs.acs.org/doi/10.1021/jacs.5c08065)
+</div>
+
+---
+## 📖 Introduction
+**Chat-RefinedTPP** is an **AI-assisted analysis platform for [Refined-TPP](https://pubs.acs.org/doi/10.1021/jacs.5c08065) (*J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139) experiments**, providing automated workflow selection, rigorous statistical analysis, and standardized processing for TMT-based datasets.
+
+The platform integrates **intelligent experiment interpretation**, **robust statistical modeling**, and **specialized workflows for protein- and N-glycosite-level analyses**, enabling researchers to analyze Refined-TPP data with minimal manual configuration.
+
+<strong>Simply input your raw DB-search results, and let the AI agent route your data through the optimal pipeline!!</strong>
+
+---
+## 🚀 Quick Start
+
+---
+## 💡 Quick Example
+
+---
+## 🛠️ Key Features (Core Capabilities)
+✨🤖 <strong>AI-Assisted Workflow Selection</strong>
+
+*"Chat-RefinedTPP" features an intelligent agent that streamlines the transition from raw DB-search data to biological insights:*
+
+- **1️⃣ Automated Interpretation**: Interprets complex experimental designs and determines replicate structures (Bio vs. Tech) without manual tagging.
+
+- **2️⃣ Dynamic Routing**: Automatically selects the optimal processing pipeline from our 8-branch architecture.
+
+- **3️⃣ Standardized Treatment**: Ensures that every dataset, regardless of its origin, undergoes a consistent and rigorous statistical treatment to eliminate human bias.
+<br>
+
+🛡️ <strong>Adaptive Statistical Framework</strong>
+
+*Our platform implements a pipeline specifically engineered for thermal proteome profiling–derived stability metrics:*
+
+- **1️⃣ Advanced Normalization**: Features Vehicle-anchored median normalization to eliminate systemic batch effects across TMT-plexes and conditions.
+
+- **2️⃣ Multi-Level Modeling**: Includes replicate-level ΔRm calculation and ΔRm normality testing prior to final inference.
+
+- **3️⃣ Variance Estimation**: Employs optional CV-guided binning statistics, enabling reliable differential analysis even in experiments without biological replicates (when ΔRm is normally distributed across proteins/N-glycosites).
+
+- **4️⃣ FDR Control**: Integrated Benjamini–Hochberg (BH) correction to strictly maintain a low false discovery rate.
+<br>
+
+📈 <strong>Interactive Data Quality Control</strong>
+
+*Bridging the gap between "black-box" analysis and researcher intuition:*
+
+- **1️⃣ Visual Profiling**: Real-time Rm values' CV distribution visualization across all proteins/N-glycosites.
+
+- **2️⃣ Interactive Thresholding**: Users can set custom CV cutoffs to automatically prune low-quality quantified proteins/N-glycosites.
+
+- **3️⃣ Reliability Assurance**: Guarantees that downstream analysis is built upon ΔRm with high reproducibility and completeness.
+<br>
+
+🔍 <strong>Flexible Experimental Design Support</strong>
+
+*Supporting multiple Refined-TPP experimental configurations, including experiments with or without biological replicates and technical replicates:*
+
+- **1️⃣ Both protein-level and site-level proteomics datasets are supported**
+
+- **2️⃣ Site Parsing**: Native extraction of N-glycosylation sites directly from database search result strings (e.g., [PEAKS ONLINE](https://www.bioinfor.com/peaks-online/)) combined with protein sequence `.fasta` files.
+
+- **3️⃣ Site-level quantitative QC**: Tailored filtering and normalization optimized for the unique noise profiles of PTM datasets to ensure site-level precision.
+
+---
+## 🧭 Decision Matrix (8-Branch Architecture)
+Our platform automatically routes your data through a **Triple-Layer Logic Gate**. Select your branch based on omics type and replicate design.
+
+```mermaid
+graph TD
+    %% Node Definitions
+    Start((<b>START</b>)) --> Type{<b>Omics Mode</b>}
+    
+    Type -- "Bulk Proteomics" --> P_Bio{Bio Reps?}
+    Type -- "N-Glycosite" --> G_Bio{Bio Reps?}
+    
+    %% Proteomics Sub-tree
+    P_Bio -- Yes --> P_Tech_Y{Tech Reps?}
+    P_Bio -- No --> P_Tech_N{Tech Reps?}
+    
+    P_Tech_Y -- Yes --> B1["<b>Branch 1</b><br>Full Design"]
+    P_Tech_Y -- No  --> B2["<b>Branch 2</b><br>Bio-Validation"]
+    P_Tech_N -- Yes --> B3["<b>Branch 3</b><br>Tech-Correction"]
+    P_Tech_N -- No  --> B4["<b>Branch 4</b><br>Rapid Screen"]
+    
+    %% Glyco Sub-tree
+    G_Bio -- Yes --> G_Tech_Y{Tech Reps?}
+    G_Bio -- No --> G_Tech_N{Tech Reps?}
+    
+    G_Tech_Y -- Yes --> B5["<b>Branch 5</b><br>Full Design"]
+    G_Tech_Y -- No  --> B6["<b>Branch 6</b><br>Bio-Validation"]
+    G_Tech_N -- Yes --> B7["<b>Branch 7</b><br>Tech-Correction"]
+    G_Tech_N -- No  --> B8["<b>Branch 8</b><br>Rapid Screen"]
+
+    %% --- Styles ---
+    classDef default fill:#fff,stroke:#cbd5e1,stroke-width:1px,color:#334155,font-family:arial;
+    classDef decision fill:#f8fafc,stroke:#94a3b8,stroke-width:2px;
+    classDef branch fill:#ffffff,stroke:#e2e8f0,stroke-width:1px;
+    classDef highlight fill:#eef2ff,stroke:#6366f1,stroke-width:2px,color:#4338ca;
+    classDef original fill:#8ae0a5,stroke:#059669,stroke-width:2px,color:#10b981;
+
+    class Type,P_Bio,G_Bio,P_Tech_Y,P_Tech_N,G_Tech_Y,G_Tech_N decision;
+    class B2,B4,B5,B7,B8 branch;
+    class B3 highlight;
+    class B1 highlight;
+    class B6 original;
+    style Start fill:#1e293b,color:#fff,stroke:#0f172a
+
+```
+**Why we use 8-Branch Architecture?**
+
+Unlike classical TPP based on melting-curve fitting such as [TPP-TR](https://www.science.org/doi/10.1126/science.1255784) (Mikhail M. Savitski et al. *Science* **2014**, *346*, 1255784), **Refined-TPP adopts a non-parametric analysis strategy** that does not require explicit melting-curve fitting. Instead, the method focuses on **ΔRm-based** stablity metrics, enabling robust comparision of protein stablity shifts between conditions **without assuming a predefined thermodynamic model** (such as 4PL-logistic in TPP-TR). 
+
+<div align="center">
+  <img src="assets/RefinedTPP-Principle.png" alt="Principle of Refined-TPP" width="600">
+  
+  **Principle of Refined-TPP (*J. Am. Chem. Soc*. 2025)**
+</div>
+
+But on the other hand, the Refined-TPP framework avoids parametric curve fitting, in other words, the observed stability of proteins mainly relys on the **accuracy of sampling and data acquisition** with lower statistical power compared to parametric analysis, **technical replicates are recommended to partially smooth experiment noise and improve the reliability of ΔRm estimation**; as well, **biological replicates are recommend to verify the facticity of final results**. However, the optimal experiment design ultimately depends on:
+
+- **Biological objective** of the study
+- **Avaliable experiment budget**
+- **Desired statistical rigor**
+
+to accommodate these practical considerations, **Chat-RefinedTPP Platform supports multiple experimental configurations** built around the presence of:
+
+- **Technical replicates**
+- **Biological replicates**
+
+These combinations naturally lead to the **8-branch analysis architecture illustrated above**, enabling researchers to select the appropriate workflow according to their experimental design.
+
+Each branch is implemented as a standalone modular pipeline, invoked via its corresponding Python script as detailed below.
+
+---
+## ⚙️ Supported Pipelines
+| Branch | Pipeline | Omics Type | Tech Rep | Bio Rep | Detailed Information |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **01** | **P1** | Bulk Proteome | ✅ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch01_P1.md) |
+| **02** | **P2** | Bulk Proteome | ❌ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch02_P2.md) |
+| **03** | **P3** | Bulk Proteome | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch03_P3.md) |
+| **04** | **P4** | Bulk Proteome | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch04_P4.md) |
+| **05** | **G1** | N-glycosite-level | ✅ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch05_G1.md) |
+| **06** | **G2** | N-glycosite-level | ❌ | ✅ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch06_G2.md) |
+| **07** | **G3** | N-glycosite-level | ✅ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch07_G3.md) |
+| **08** | **G4** | N-glycosite-level | ❌ | ❌ | [View Link](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/blob/main/pipelines/Branch08_G4.md) |
+
+---
+## 🔄 Workflow Overview
+
+### 📱 For Web Platform Users
+
+***⚠️⚠️ Please Note: Web Platform Only for academic use!!***
+
+<div align="center"> 
+  <img src="assets/Chat-RefinedTPP Workflow.png" alt="Chat-RefinedTPP System Workflow" width="600">
+  
+  **Web Platform Workflow: From Data Upload to Results Download**
+</div>
+
+**[Webpage address]**: [https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
+
+**How It Works:**
+
+1. 📤 **Upload Your Data**: Submit your raw DB-search results or preprocessed proteomics data to the [web platform](https://songhaoru-max.github.io/Refined-TPP_Chat_Platform/)
+2. 🤖 **AI Agent Analysis**: The intelligent agent communicates with you to understand your experimental design
+3. 🔀 **Automatic Pipeline Selection**: System analyzes your data structure and automatically selects the optimal analysis branch
+4. ⚙️ **Backend Processing**: Python scripts execute the statistical analysis and data quality control
+5. 📊 **Download Results**: Get comprehensive analysis results with visualizations and statistical summaries
+
+> ✨ **No coding required!** Just upload, chat with AI, and download results.
+
+### 💻 For Developers (Local Deployment)
+
+If you want to deploy the platform locally or extend it with custom pipelines, please refer to:
+- **[Installation Guide](#-installation-for-developers)** - Step-by-step setup instructions
+- **[Project Structure](#-project-structure)** - Understanding the codebase
+- **[Pipeline Details](./pipelines/)** - How to modify or create new analysis branches
+- **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute improvements
+
+---
+## 📁 Project Structure
+
+```
+Refined-TPP_Chat_Platform/
+├── frontend/                    # Web interface
+│   ├── src/
+│   │   ├── components/         # React components
+│   │   ├── pages/              # Web pages
+│   │   └── ...
+│   └── package.json
+│
+├── backend/                     # Backend API & AI Agent
+│   ├── agent/                  # AI Agent logic
+│   ├── api/                    # REST API endpoints
+│   ├── app.py                  # Main Flask app
+│   └── ...
+│
+├── pipelines/                   # 8-branch analysis pipelines
+│   ├── Branch01_P1.md          # P1 pipeline documentation
+│   ├── Branch02_P2.md
+│   ├── ...
+│   └── Branch08_G4.md
+│
+├── src/                         # Core Python modules
+│   ├── normalization.py        # Normalization methods
+│   ├── statistical_analysis.py # Statistical tests
+│   ├── visualization.py        # Plotting functions
+│   └── ...
+│
+├── assets/                      # Images and resources
+│   ├── Logo.png
+│   ├── Chat-RefinedTPP Workflow.png
+│   ├── RefinedTPP-Principle.png
+│   └── ...
+│
+├── examples/                    # Example data and scripts
+│   ├── sample_data_P1.csv
+│   ├── sample_data_G2.csv
+│   └── ...
+│
+├── tests/                       # Unit tests
+│   ├── test_normalization.py
+│   ├── test_statistical_analysis.py
+│   └── ...
+│
+├── requirements.txt             # Python dependencies
+├── README.md                    # This file
+└── LICENSE
+```
+---
+## 📊 Data Format
+
+---
+## ❓ FAQ
+
+---
+## 📧 Support & Contact
+<table>
+  <tr>
+    <td><b>Author</b></td>
+    <td>Haoru Song (宋昊儒)</td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Email</b></td>
+    <td>
+      Personal: <a href="mailto:songhaoru233@gmail.com">songhaoru233@gmail.com</a><br>
+      University: <a href="mailto:hrsong23@m.fudan.edu.cn">hrsong23@m.fudan.edu.cn</a>
+    </td>
+  </tr>
+  <tr>
+    <td><b>Lab</b></td>
+    <td><a href="https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm">Haojie Lu Lab</a>, Fudan University</td>
+  </tr>
+  <tr>
+    <td><b>GitHub Issues Feedback</b></td>
+    <td>For bug reports and feature requests, please open an issue <a href="https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new/choose">here</a></td>
+  </tr>
+</table>
+
+
+---
+## 🤝 Contributing
+
+We welcome contributions to the **Chat-RefinedTPP** platform! To maintain analytical rigor and system stability, please follow our structured collaboration workflow:
+
+### Collaboration Channels
+* **Report Bugs**: Encountered an issue? Open a [**Bug Report**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new?template=bug_report.md).
+* **Request Features**: Have ideas for new algorithms? Submit a [**Feature Request**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/issues/new?template=feature_request.md).
+* **Academic Inquiries**: For private research discussions or sensitive data support (e.g., specific N-glycosite retrieval logic), please refer directly to our [**Support & Contact**](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform#-support--contact) section above.
+
+### Development Workflow
+Before submitting a Pull Request, please ensure you have reviewed our [**Contributing Guidelines**](./CONTRIBUTING.md) and meet the following criteria:
+
+1.  **Logic Integrity**: Changes must not disrupt the **multi-branch architecture** routing (Bulk Proteome vs. N-Glycosite).
+2.  **QC Sequence**: The **CV (Coefficient of Variation)** quality control step must remain strictly positioned *after* unique peptide filtering and *before* differential analysis.
+3.  **Data Validation**: Any modifications to the N-glycosylation pipeline must be verified using both database search results and `.fasta` sequence files.
+
+> [!IMPORTANT]
+> All code contributions are reviewed by the Principal maintainer (**Haoru Song**). Please use our [**PR Template**](./.github/PULL_REQUEST_TEMPLATE.md) for self-check before submission.
+
+---
+## 📜 License
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+This project is licensed under the **Apache License 2.0**. 
+
+Copyright © 2026 **Haoru Song** and the **Chat-RefinedTPP Contributors**.
+
+> [!NOTE]
+> Under the Apache 2.0 License, you are free to use, modify, and distribute this software. However, any derivative works involving the **multi-branch routing architecture** or **Rm values' CV-controlled quality control sequences** must retain original attribution notices, in accordance with the Apache 2.0 License.
+
+For the full legal text, please refer to the [LICENSE](./LICENSE) file.
+
+---
+## 📚 Citation
+
+---
+## 🙏 Acknowledgments
+
+**Chat-RefinedTPP Platform** is primarily developed at the **Haojie Lu Lab, Department of Chemistry, Fudan University**.
+
+The platform is **led and implemented by Haoru Song**, with contributions from collaborators in code development, backend infrastructure, experimental methodology, and internal testing.
+
+### 🚀Core Development & Maintenance
+
+* **[Haoru Song (宋昊儒)](https://songhaoru-max.github.io/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/SongHaoru-max"></a>- *Fudan University*
+  
+   * **Project Leader & Principal Developer and Maintainer**
+   * Designed and implemented the platform architecture, including the **8-branch modular pipeline**, AI-agent workflow routing, and the statistical framework for ΔRm-based Refined-TPP analysis.
+  
+### 🛠️Code Review & Refinement
+
+* **[Chenxin Li (李陈鑫)](https://github.com/cxli914)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/cxli914"></a> - *Fudan University*
+   * **Code Refinement & Debugging**
+   * Assisted in improving code structure, optimizing implementation details, and resolving bugs during development.
+  
+* **[Bin Fu (付彬)](https://github.com/fubin1999)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/fubin1999"></a> - *Fudan University*
+   * **Code Review**
+   * Contributed to code inspection and structural improvements of the analysis scripts.
+  
+### ⚙️Backend Infrastructure & Technical Consultation
+
+* **[Wenjie Qiu (邱文杰)](https://www.lamda.nju.edu.cn/qiuwj/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/Shylock-H"></a> - *Nanjing University @ LAMDA*
+   * **Backend Co-development & Technical Consultation**
+
+* **[Tianyi Zhang (张天一)](https://www.lamda.nju.edu.cn/zhangty/)** <a href="GITHUB_LINK"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="16" alt="https://github.com/goldcook"></a> - *Nanjing University @ LAMDA*
+   * **Backend Co-development & Technical Consultation**
+
+> **Special Note:** A heartfelt thanks to both colleagues for their invaluable personal support in setting up the backend infrastructure and providing expert consultation on system architecture and deployment.
+
+### 🧪Experimental Methodology & Validation
+
+The foundational **Refined-TPP experimental methodology** was established in the **Haojie Lu Lab** and formally reported in the *Journal of the American Chemical Society*:
+
+> 📖 **[Guoli Wang, et al. *J. Am. Chem. Soc*. **2025**, *147*, 27, 24127–24139](https://pubs.acs.org/doi/10.1021/jacs.5c08065)**
+
+It is our privilege to develop the **Chat-RefinedTPP** platform to provide a standardized, computational workflow for this groundbreaking experimental technique.
+
+**Experimental Methodology Development:**
+
+* **[Guoli Wang (王国力)](LINK_IF_AVAILABLE)** - *Fudan University*
+   * **Experimental Methodology Development and Verification**
+
+**Example Data Generation & Wet-Lab Validation:**
+* **[Hanxiang Xiao (萧瀚翔)](LINK_IF_AVAILABLE)** - *Fudan University* 
+* **[Yisheng Wang (王奕升)](LINK_IF_AVAILABLE)**  - *Fudan University*
+
+* *Their rigorous efforts in bulk protein sample preparation, thermal treatment, mass spectrometry experiments, and data acquisition were crucial for validating the analytical workflows implemented in this platform.*
+
+### 💡Community Feedback & Internal Testing
+
+We extend our gratitude to the members of the **Haojie Lu Lab** for their extensive participation during the early **alpha and beta testing** phases. Your insights, feature suggestions, and rigorous stress-testing were instrumental in optimizing the workflow and improving the user interface!
+
+### 🎓Academic Supervision & Research Support
+
+This work was conducted under the profound supervision and support of:
+
+* **[Prof. Haojie Lu (陆豪杰 教授)](https://chemistry.fudan.edu.cn/89/1f/c45942a690463/page.htm)** — *Fudan University*  
+* **[Prof. Ying Zhang (张莹 教授)](https://chemistry.fudan.edu.cn/08/6c/c45943a723052/page.htm)** — *Fudan University*  
+
+> We deeply appreciate their guidance, the provision of essential experimental resources, funding for platform maintenance, and insightful suggestions throughout the entire development process!
+
+---
+
+**Last updated**: March 9, 2026
+
+**Version**: 1.0.0
