@@ -114,6 +114,17 @@ conda env export --no-builds > environment.yml
 pip freeze > requirements-lock.txt
 ```
 
+#### 3.1.5 Dependency files in this repository
+
+- [Download `requirements.txt`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/requirements.txt): standard dependency list for most users.
+- [Download `requirements-lock.txt`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/requirements-lock.txt): fully pinned environment snapshot for strict reproducibility.
+- [Download `environment.yml`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/environment.yml): Conda environment definition file.
+
+Recommended usage:
+- Standard install: `pip install -r requirements.txt`
+- Strict reproducibility: `pip install -r requirements-lock.txt`
+- Conda recreate: `conda env create -f environment.yml`
+
 ### 3.2 Option B: venv
 
 If you do not use Conda, use Python built-in venv:
