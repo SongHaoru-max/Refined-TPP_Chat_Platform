@@ -99,7 +99,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` is not ready yet, use temporary manual install:
+Optional quick local setup (temporary, for rapid iteration before updating pinned deps):
 
 ```bash
 pip install pandas numpy seaborn scipy matplotlib statsmodels matplotlib-venn upsetplot

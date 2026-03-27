@@ -6,7 +6,7 @@ kiwisolver==1.5.0
 matplotlib==3.10.7
 matplotlib-venn==1.1.2
 numpy==2.3.4
-packaging @ file:///C:/miniconda3/conda-bld/packaging_1761049096285/work
+packaging==25.0
 pandas==2.3.3
 patsy==1.0.2
 pillow==12.1.1
