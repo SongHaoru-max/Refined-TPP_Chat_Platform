@@ -99,7 +99,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Optional quick local setup (temporary, for rapid iteration before updating pinned deps):
+If `requirements.txt` is not ready yet, use temporary manual install:
 
 ```bash
 pip install pandas numpy seaborn scipy matplotlib statsmodels matplotlib-venn upsetplot
@@ -114,17 +114,6 @@ conda env export --no-builds > environment.yml
 pip freeze > requirements-lock.txt
 ```
 
-#### 3.1.5 Dependency files in this repository
-
-- [Download `requirements.txt`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/requirements.txt): standard dependency list for most users.
-- [Download `requirements-lock.txt`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/requirements-lock.txt): fully pinned environment snapshot for strict reproducibility.
-- [Download `environment.yml`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/raw/main/environment.yml): Conda environment definition file.
-
-Recommended usage:
-- Standard install: `pip install -r requirements.txt`
-- Strict reproducibility: `pip install -r requirements-lock.txt`
-- Conda recreate: `conda env create -f environment.yml`
-
 ### 3.2 Option B: venv
 
 If you do not use Conda, use Python built-in venv:
@@ -137,58 +126,5 @@ python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
----
-
-## 4. Repository Setup
-
-### 4.1 Clone repositories
-> Team baseline repository:
-
-```bash
-git clone https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform.git
-cd Refined-TPP_Chat_Platform
-# The default branch is 'Development', but ensure you are on it:
-git checkout Development
-```
-
-> Optional personal draft repository (private, principal maintainer only):
-> `Chat-RefinedTPP-Python-Draft`  
-> Note: This repo is not required for collaborators and is not the source of truth.
-
-### 4.2 Branch policy
-
-- Default branch: `Development` (**all active development, module intergration, and debugging occur here**)
-- Stable branch: `main` (Reserved for verified milestones. Code is merged from `Development` to `main` via **Pull Request (PR)** only)
-- Feature branches: `feature/<topic>` (for specific tasks, branched from `Development`, merged back via PR)
-- Hotfix branches: `hotfix/<topic>` (used for urgent fixes on `main`, then back-merge to both `main` and `Development`)
-- Draft scripts repo: private personal use only, no team dependency
-- Release/Tag policy:
-  - Official versions are tagged only on the `main` branch after successful PR merges.
-  - Version format: `vX.Y.Z` (e.g., `v0.1.0`)
-
-### 4.3 Suggested workspace layout
-
-To prevent large Proteomic DB-search and processed result files from being accidentally uploaded to GitHub, follow this layout:
-
-```text
-workspace/
-├── Refined-TPP_Chat_Platform/    # source of truth
-├── data/                         # local runtime data (not versioned)
-│   ├── input/
-│   ├── output/
-│   └── reference/
-└── logs/                         # local logs (not versioned)
-```
-
-### 4.4 Source-of-truth statement
-
-The `Refined-TPP_Chat_Platform` repository is the authoritative source for the project.
-
-1. **No direct pushes to** `main`: All changes must go through `Development`.
-
-2. **Integration**: Once a module (e.g., a specific Python pipeline branch) is stable, a PR should be opened to merge it into `main` for versioning.
-
-3. The private draft repository is for prototyping only and must not be referenced in production code.
 
 ---
