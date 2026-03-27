@@ -164,23 +164,31 @@ git checkout Development
 - Hotfix branches: `hotfix/<topic>` (used for urgent fixes on `main`, then back-merge to both `main` and `Development`)
 - Draft scripts repo: private personal use only, no team dependency
 - Release/Tag policy:
-  - * Official versions are tagged only on the `main` branch after successful PR merges.
+  - Official versions are tagged only on the `main` branch after successful PR merges.
   - Version format: `vX.Y.Z` (e.g., `v0.1.0`)
 
 ### 4.3 Suggested workspace layout
+
+To prevent large Proteomic DB-search and processed result files from being accidentally uploaded to GitHub, follow this layout:
+
 ```text
 workspace/
-├── Refined-TPP_Chat_Platform/
-├── data/
+├── Refined-TPP_Chat_Platform/    # source of truth
+├── data/                         # local runtime data (not versioned)
 │   ├── input/
 │   ├── output/
 │   └── reference/
-└── logs/
+└── logs/                         # local logs (not versioned)
 ```
+
 ### 4.4 Source-of-truth statement
 
-All production-ready scripts and initial draft scripts must be pushed to:
-`SongHaoru-max/Refined-TPP_Chat_Platform` on branch `development`.
+The `Refined-TPP_Chat_Platform` repository is the authoritative source for the project.
 
-The private draft repository is optional and should not be referenced as a required dependency in setup instructions.
+1. **No direct pushes to** `main`: All changes must go through `Development`.
+
+2. **Integration**: Once a module (e.g., a specific Python pipeline branch) is stable, a PR should be opened to merge it into `main` for versioning.
+
+3. The private draft repository is for prototyping only and must not be referenced in production code.
+
 ---
