@@ -139,3 +139,48 @@ pip install -r requirements.txt
 ```
 
 ---
+
+## 4. Repository Setup
+
+### 4.1 Clone repositories
+> Team baseline repository:
+
+```bash
+git clone https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform.git
+cd Refined-TPP_Chat_Platform
+# The default branch is 'Development', but ensure you are on it:
+git checkout Development
+```
+
+> Optional personal draft repository (private, principal maintainer only):
+> `Chat-RefinedTPP-Python-Draft`  
+> Note: This repo is not required for collaborators and is not the source of truth.
+
+### 4.2 Branch policy
+
+- Default branch: `Development` (**all active development, module intergration, and debugging occur here**)
+- Stable branch: `main` (Reserved for verified milestones. Code is merged from `Development` to `main` via **Pull Request (PR)** only)
+- Feature branches: `feature/<topic>` (for specific tasks, branched from `Development`, merged back via PR)
+- Hotfix branches: `hotfix/<topic>` (used for urgent fixes on `main`, then back-merge to both `main` and `Development`)
+- Draft scripts repo: private personal use only, no team dependency
+- Release/Tag policy:
+  - * Official versions are tagged only on the `main` branch after successful PR merges.
+  - Version format: `vX.Y.Z` (e.g., `v0.1.0`)
+
+### 4.3 Suggested workspace layout
+```text
+workspace/
+├── Refined-TPP_Chat_Platform/
+├── data/
+│   ├── input/
+│   ├── output/
+│   └── reference/
+└── logs/
+```
+### 4.4 Source-of-truth statement
+
+All production-ready scripts and initial draft scripts must be pushed to:
+`SongHaoru-max/Refined-TPP_Chat_Platform` on branch `development`.
+
+The private draft repository is optional and should not be referenced as a required dependency in setup instructions.
+---
