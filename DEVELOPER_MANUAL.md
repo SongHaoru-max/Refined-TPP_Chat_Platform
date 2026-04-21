@@ -190,3 +190,238 @@ The `Refined-TPP_Chat_Platform` repository is the authoritative source for the p
 2. **Integration**: Once a module (e.g., a specific Python pipeline branch) is stable, a PR should be opened to merge it into `main` for versioning.
 
 3. The private draft repository is for prototyping only and must not be referenced in production code.
+
+---
+
+## 5. Unified Execution Flow (All 8 Branches)
+
+1. Activate environment 
+2. Select branch script (or pipeline entry)
+3. Prepare required input files
+4. Run scripts and provide interactive parameters
+5. Validate outputs (`CSV/TIFF` + `logs`)
+6. Archive result package
+
+### 5.1 Generic run command
+```bash
+python <BranchXX_P/GX>.py
+# Replace "X" with the specific number of the scrpit you need
+```
+### 5.2 Generic input classes
+- Protein quantification table
+- Peptide quantification table (N-glycosite branches)
+- Reference FASTA (N-glycosite branches)
+- Branch-specific metadata and thresholds
+
+---
+
+## 6. 8-Branch Difference Matrix
+
+| Branch | Pipeline | Omics | Tech Rep | Bio Rep | Required Inputs | Key Variable Inputs | Main Outputs |
+|---|---|---|---:|---:|---|---|---|
+| 01 | P1 | Bulk proteome | ✅ | ✅ | [To fill] | [To fill] | [To fill] |
+| 02 | P2 | Bulk proteome | ❌ | ✅ | [To fill] | [To fill] | [To fill] |
+| 03 | P3 | Bulk proteome | ✅ | ❌ | [To fill] | [To fill] | [To fill] |
+| 04 | P4 | Bulk proteome | ❌ | ❌ | [To fill] | [To fill] | [To fill] |
+| 05 | G1 | N-glycosite | ✅ | ✅ | [To fill] | [To fill] | [To fill] |
+| 06 | G2 | N-glycosite | ❌ | ✅ | Protein CSV + Peptide CSV + FASTA | CV threshold / motif window / significance settings | QC CSV + ΔRm CSV + significance CSV + TIFF |
+| 07 | G3 | N-glycosite | ✅ | ❌ | [To fill] | [To fill] | [To fill] |
+| 08 | G4 | N-glycosite | ❌ | ❌ | [To fill] | [To fill] | [To fill] |
+
+> Maintenance rule: keep shared steps in Sections 3–5; only branch differences belong here.
+
+---
+
+## 7. Branch-Specific Run Notes (B1–B8)
+
+### 7.1 Branch 01 (P1)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.2 Branch 02 (P2)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.3 Branch 03 (P3)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.4 Branch 04 (P4)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.5 Branch 05 (G1)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.6 Branch 06 (G2)
+- Script: `Branch06_G2_update.py`
+- Typical inputs:
+  - TMT protein quant CSV
+  - TMT peptide quant CSV
+  - UniProt FASTA
+- Typical interactive parameters:
+  - sample naming / control mapping
+  - motif window length (odd)
+  - CV threshold
+  - significance branch settings
+- Typical outputs:
+  - protein/site QC tables
+  - ΔRm-related tables
+  - significance tables
+  - TIFF visualizations
+- Notes:
+  - Ensure accession format consistency between peptide CSV and FASTA
+  - Ensure selected group names match intensity-column prefixes exactly
+
+### 7.7 Branch 07 (G3)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+### 7.8 Branch 08 (G4)
+- Script: [To fill]
+- Special inputs: [To fill]
+- Special outputs: [To fill]
+- Notes: [To fill]
+
+---
+
+## 8. Local Agent Deployment (Web-like Experience)
+
+### 8.1 Goal
+Provide local interactive analysis similar to hosted web usage.
+
+### 8.2 Service components
+- frontend (optional for pure API use)
+- backend API
+- agent process
+- pipeline execution layer
+
+### 8.3 Environment variables
+```bash
+# Example only; adjust to actual implementation
+OPENAI_API_KEY=...
+BACKEND_PORT=...
+FRONTEND_PORT=...
+DATA_ROOT=...
+LOG_LEVEL=INFO
+```
+
+### 8.4 Startup order
+1. Start backend API  
+2. Start agent service  
+3. Start frontend (if used)  
+4. Run health checks  
+5. Execute one end-to-end sample task
+
+### 8.5 Health checks
+- API `/health` reachable
+- Agent responds to routing request
+- Pipeline job can start and finish successfully
+
+---
+
+## 9. Hosted Backend Operations (Maintainer-only)
+
+### 9.1 Operational boundary
+- End users: web upload + interaction only
+- Maintainer: backend deployment, monitoring, incident response
+
+### 9.2 Deployment checklist
+- environment variables configured
+- secrets managed securely
+- storage path/permissions validated
+- logging/monitoring enabled
+- rollback strategy prepared
+
+### 9.3 Release flow
+- [To fill] staging validation
+- [To fill] production rollout
+- [To fill] rollback condition and command
+
+---
+
+## 10. Data Contract & Validation Checklist
+
+### 10.1 Input schema checklist
+- required columns present
+- accession format consistent
+- numeric intensity columns parseable
+- missing/zero handling policy clear
+
+### 10.2 Pre-run validation
+- [To fill] automated validator script path
+- [To fill] manual fallback checklist
+
+### 10.3 Output acceptance
+- expected CSV artifacts generated
+- expected TIFF artifacts generated
+- no fatal warnings in logs
+
+---
+
+## 11. Testing & QA
+
+### 11.1 Unit tests
+```bash
+# Example
+pytest -q
+```
+
+### 11.2 Integration tests
+- branch run smoke test (all 8)
+- agent-to-pipeline invocation test
+- output schema regression test
+
+### 11.3 Golden dataset regression
+- [To fill] dataset location
+- [To fill] acceptance thresholds
+
+---
+
+## 12. Troubleshooting Runbook
+
+### 12.1 Environment errors
+- dependency conflicts → recreate clean env
+- package import errors → verify active env and reinstall
+
+### 12.2 Data/input errors
+- file not found → verify absolute paths
+- empty glycosite output → check FASTA mapping and accession formats
+- missing columns → compare against schema checklist
+
+### 12.3 Service errors
+- backend unavailable → verify port/process
+- agent timeout → inspect agent logs and upstream API key status
+- frontend can’t fetch results → check backend URL/CORS and job status endpoint
+
+---
+
+## 13. Contribution Workflow
+
+1. Create feature branch  
+2. Implement + test  
+3. Update docs (README link + manual section)  
+4. Open PR with:
+   - change summary
+   - validation evidence
+   - backward compatibility note
+
+---
+
+## 14. Changelog
+
+- **v0.1.0** — Initial single-file developer manual skeleton
+- **v0.1.1** — [To fill]
