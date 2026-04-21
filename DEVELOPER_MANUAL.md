@@ -301,35 +301,78 @@ python <BranchXX_P/GX>.py
 ## 8. Local Agent Deployment (Web-like Experience)
 
 ### 8.1 Goal
-Provide local interactive analysis similar to hosted web usage.
+Provide local interactive analysis similar to hosted web usage, driven by a Large Language Model (LLM) agent orchestrating the 8 analytical branches.
 
-### 8.2 Service components
-- frontend (optional for pure API use)
-- backend API
-- agent process
-- pipeline execution layer
+### 8.2 Tech Stack & Service Components
+- **API Layer**: **FastAPI**
+  > Chosen for native `async` support to efficiently handle long-polling LLM I/O, and native `Pydantic` integration for strict bioinformatic parameter validation.
+- **Agent Framework**: **LangChain**
+  > Chosen for its robust Tool Calling mechanism (mapping the 8 Python scripts into executable tools), Expression Language (LCEL), and built-in multi-turn conversational memory.
+- **Execution Layer**: Subprocess or module imports triggering `BranchXX_P/GX.py`.
+- **Frontend** (Optional): [To fill, e.g., React/Vue or Streamlit].
 
-### 8.3 Environment variables
+### 8.3 Architectural Principle: Decoupling Control Flow from Data Flow
+To prevent LLM context window limits and control API costs (Token explosion), the Agent operates strictly as an orchestrator, **never reading raw data files**.
+
+**The strict separation rule (v0.1.0):**
+1. **File Upload**: Raw CSV/FASTA files are stored directly to the local disk/workspace by the FastAPI backend. The LLM is bypassed.
+2. **Routing & Tool Calling (LLM)**: The Agent only receives **metadata** (e.g., file paths, user prompts, extracted parameters like CV thresholds). It uses this metadata to decide which Python branch to execute.
+3. **Execution (Python)**: The underlying `BranchXX.py` scripts read the large files from disk using `pandas` and perform the heavy lifting locally.
+4. **Summary Generation (LLM)**: To generate the final biological report, the Python script must output a condensed `summary.json` (e.g., number of significant proteins, top 5 changes). The Agent reads *only* this JSON, never the resulting full CSVs.
+
+*Anti-pattern to avoid*: Never pass `dataframe.to_string()` or raw CSV contents into the LangChain prompt.
+
+### 8.4 Backend Directory Structure Reference
+To maintain separation of concerns, the backend strictly follows this layout:
+
+```text
+backend/
+├── [main.py](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/tree/Development/backend/main.py)          # FastAPI entry point and API routers
+├── [schemas/](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/tree/Development/backend/schemas)         # Pydantic models (Data Contracts for G1-G4, P1-P4)
+├── [agent/](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/tree/Development/backend/agent)           # LangChain core logic
+│   ├── tools.py       # 8 branches wrapped as LangChain Tools
+│   ├── prompts.py     # System prompts and few-shot routing examples
+│   └── workflow.py    # Conversation state and execution flow
+└── [core/](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/tree/Development/backend/core)            # Global config and environment loading
+```
+
+### 8.5 Environment variables
+Create a `.env` file in the `backend/` directory:
+
 ```bash
-# Example only; adjust to actual implementation
-OPENAI_API_KEY=...
-BACKEND_PORT=...
-FRONTEND_PORT=...
-DATA_ROOT=...
+# .env.example
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1
+AGENT_MODEL_NAME=gpt-4o
+BACKEND_PORT=8000
+WORKSPACE_DIR=../data/workspace
 LOG_LEVEL=INFO
 ```
 
-### 8.4 Startup order
-1. Start backend API  
-2. Start agent service  
-3. Start frontend (if used)  
-4. Run health checks  
-5. Execute one end-to-end sample task
+### 8.6 Startup Order & Commands
+1. Start backend API & Agent service:
 
-### 8.5 Health checks
-- API `/health` reachable
+```bash
+cd backend
+# Uvicorn is the ASGI server for FastAPI
+uvicorn main:app --reload --port 8000
+```
+ 
+2. Start frontend (if used):
+
+```bash
+cd frontend
+npm run dev
+```
+
+3. Run health checks:
+- API `/health` reachable (Check Swagger UI)
 - Agent responds to routing request
 - Pipeline job can start and finish successfully
+
+5. Execute one end-to-end sample task:
+- Upload sample CSVs to trigger a simple P2 or G2 job.
+- Verify that the Agent correctly extracts parameters, the Python script executes without errors, and the `summary.json` is successfully parsed by the LLM into a final report.
 
 ---
 
@@ -337,7 +380,7 @@ LOG_LEVEL=INFO
 
 ### 9.1 Operational boundary
 - End users: web upload + interaction only
-- Maintainer: backend deployment, monitoring, incident response
+- Maintainer: backend deployment, LLM API key management, monitoring, incident response.
 
 ### 9.2 Deployment checklist
 - environment variables configured
