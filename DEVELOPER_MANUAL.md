@@ -383,16 +383,16 @@ npm run dev
 - Maintainer: backend deployment, LLM API key management, monitoring, incident response.
 
 ### 9.2 Deployment checklist
-- environment variables configured
-- secrets managed securely
-- storage path/permissions validated
-- logging/monitoring enabled
-- rollback strategy prepared
+- [ ] **ASGI Server**: Use `gunicorn` with `uvicorn` workers for FastAPI production deployment (e.g., `gunicorn main:app -k uvicorn.workers.UvicornWorker`)
+- [ ] **State Management**: Ensure external memory (e.g., Redis or SQLite) is configured for LangChain to persist user sessions across server restarts.
+- [ ] **Timeout Configs**: Extend reverse proxy (Nginx/Traefik) timeouts. LLM reasoning and pipelines can run for several minutes.
+- [ ] **Secrets Managed:**: API keys managed securely (do NOT hardcode `OPENAI_API_KEY`).
+- [ ] **Storage**: Verify `WORKSPACE_DIR` read/write permissions for large CSV/TIFF operations.
 
 ### 9.3 Release flow
-- [To fill] staging validation
-- [To fill] production rollout
-- [To fill] rollback condition and command
+- [To fill] Staging validation (Automated Agent routing tests)
+- [To fill] Production rollout
+- [To fill] Rollback condition and command
 
 ---
 
@@ -419,45 +419,48 @@ npm run dev
 
 ### 11.1 Unit tests
 ```bash
-# Example
-pytest -q
+# Run tests for core bioinformatic functions and schema validation
+pytest backend/tests/ -q
 ```
 
 ### 11.2 Integration tests
-- branch run smoke test (all 8)
-- agent-to-pipeline invocation test
-- output schema regression test
+- **Branch run smoke test (all 8)**: Ensure pure Python scripts run end-to-end without LLM.
+- **Agent-to-Pipeline invocation test**: Mock LLM responses to ensure FastAPI triggers the correct Tool.
+- **Output schema regression test**: Validate that the generated `summary.json` format remains consistent.
 
 ### 11.3 Golden dataset regression
-- [To fill] dataset location
-- [To fill] acceptance thresholds
+- [To fill] Dataset location
+- [To fill] Acceptance thresholds
 
 ---
 
 ## 12. Troubleshooting Runbook
 
-### 12.1 Environment errors
-- dependency conflicts → recreate clean env
-- package import errors → verify active env and reinstall
+### 12.1 Environment Errors
+- **Dependency conflicts** → recreate clean env from `requirements-lock.txt`.
+- **Package import errors** → verify active env (`conda activate refinedtpp`) and reinstall.
 
-### 12.2 Data/input errors
-- file not found → verify absolute paths
-- empty glycosite output → check FASTA mapping and accession formats
-- missing columns → compare against schema checklist
+### 12.2 Data/Input Errors
+- **File not found** → verify absolute paths in `WORKSPACE_DIR`.
+- **Empty glycosite output** → check FASTA mapping and accession formats.
+- **Missing columns** → compare against schema checklist.
 
-### 12.3 Service errors
-- backend unavailable → verify port/process
-- agent timeout → inspect agent logs and upstream API key status
-- frontend can’t fetch results → check backend URL/CORS and job status endpoint
+### 12.3 Service & Agent Errors
+- **Backend Unavailable** → Verify Uvicorn/Gunicorn port and process.
+- **Agent JSON Parsing Error** → If LLM hallucination breaks parameter extraction, enable `LOG_LEVEL=DEBUG` to inspect the raw LLM string. Ensure LangChain's Output Parser is catching and retrying formatting errors.
+- **Agent Branch Misrouting** → If the Agent selects the wrong branch (e.g., routes G2 to P1), verify the Tool descriptions in `agent/tools.py` and update the few-shot examples in `prompts.py`.
+- **Context Window Exceeded** → Ensure the Agent is NOT reading raw multi-megabyte Proteome CSVs. Refer to the *Decoupling Control Flow from Data Flow* principle in Section 8.
+- **Frontend Fetch Failure** → Check backend URL/CORS and job status endpoint.
 
 ---
 
 ## 13. Contribution Workflow
 
-1. Create feature branch  
-2. Implement + test  
-3. Update docs (README link + manual section)  
-4. Open PR with:
+1. Create feature branch from `Development`.
+2. Implement Python logic + update LangChain Tools/Pydantic schemas. 
+3. Add unit tests for new schemas/functions.
+4. Update docs (README link + Manual section). 
+5. Open PR with:
    - change summary
    - validation evidence
    - backward compatibility note
