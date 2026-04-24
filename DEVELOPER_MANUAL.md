@@ -138,6 +138,20 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+### 3.3 Node.js / Frontend Setup (Optional)
+If you are developing or running the local Agent UI (Mode B), you need Node.js.
+1. Download and install Node.js (LTS version recommended: v18 or v20) from [nodejs.org](https://nodejs.org/).
+2. Verify installation:
+   ```bash
+   node -v
+   npm -v
+   ```
+3. Install frontend dependencies:
+  ```bash
+  cd frontend
+  npm install
+  ```
+
 ---
 
 ## 4. Repository Setup
@@ -158,7 +172,7 @@ git checkout Development
 
 ### 4.2 Branch policy
 
-- Default branch: `Development` (**all active development, module intergration, and debugging occur here**)
+- Default branch: `Development` (**all active development, module integration, and debugging occur here**)
 - Stable branch: `main` (Reserved for verified milestones. Code is merged from `Development` to `main` via **Pull Request (PR)** only)
 - Feature branches: `feature/<topic>` (for specific tasks, branched from `Development`, merged back via PR)
 - Hotfix branches: `hotfix/<topic>` (used for urgent fixes on `main`, then back-merge to both `main` and `Development`)
@@ -205,7 +219,7 @@ The `Refined-TPP_Chat_Platform` repository is the authoritative source for the p
 ### 5.1 Generic run command
 ```bash
 python <BranchXX_P/GX>.py
-# Replace "X" with the specific number of the scrpit you need
+# Replace "X" with the specific number of the script you need
 ```
 ### 5.2 Generic input classes
 - Protein quantification table
@@ -398,20 +412,25 @@ npm run dev
 
 ## 10. Data Contract & Validation Checklist
 
-### 10.1 Input schema checklist
-- required columns present
-- accession format consistent
-- numeric intensity columns parseable
-- missing/zero handling policy clear
+> **Architecture Note**: All Agent-to-Pipeline parameter parsing MUST be strictly typed using **FastAPI / Pydantic** schemas. This prevents LLM "hallucinations" from passing invalid thresholds (e.g., passing a string instead of a float for CV threshold) to the pipeline.
+
+### 10.1 Input Schema Checklist
+- Reference implementation: [`backend/schemas/`](https://github.com/SongHaoru-max/Refined-TPP_Chat_Platform/tree/Development/backend/schemas)
+- Pydantic models must enforce:
+  - required columns present
+  - accession format consistent
+  - numeric intensity columns parseable (e.g., `cv_threshold: float = Field(ge=0.0, le=1.0)`)
+  - missing/zero handling policy clear
 
 ### 10.2 Pre-run validation
-- [To fill] automated validator script path
-- [To fill] manual fallback checklist
+- [To fill] Automated validator script path (e.g., `backend/core/validator.py`)
+- [To fill] Manual fallback checklist
 
-### 10.3 Output acceptance
+### 10.3 Output Acceptance
 - expected CSV artifacts generated
 - expected TIFF artifacts generated
 - no fatal warnings in logs
+- `summary.json` generated for LLM report consumption
 
 ---
 
@@ -458,6 +477,11 @@ pytest backend/tests/ -q
 
 1. Create feature branch from `Development`.
 2. Implement Python logic + update LangChain Tools/Pydantic schemas. 
+3. **Format and Lint**: Ensure your code meets PEP8 standards. We recommend using `black` for formatting and `mypy` for static type checking:
+   ```bash
+   black .
+   mypy backend/
+   ```
 3. Add unit tests for new schemas/functions.
 4. Update docs (README link + Manual section). 
 5. Open PR with:
