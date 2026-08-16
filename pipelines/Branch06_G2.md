@@ -1,10 +1,12 @@
-# 🧬 Branch 06 — G2: N-Glycosite-Level Analysis with Biological Replicates
+# 🧬 Branch 06 �?G2: N-Glycosite-Level Analysis with Biological Replicates
 
-> **Pipeline ID:** `Branch06_G2`  
-> **Omics Mode:** N-glycosite-level proteomics  
-> **Technical Replicates:** ❌ No  
-> **Biological Replicates:** ✅ Yes  
-> **Primary Stability Metric:** ΔRm  
+> **Pipeline ID:** `Branch06_G2`
+> **Omics Mode:** N-glycosite-level proteomics
+> **Technical Replicates:** �?No
+> **Biological Replicates:** �?Yes
+> **Primary Stability Metric:** ΔRm
+> **Protein Quantitative Unit:** PEAKS Protein Group
+> **Site Quantitative / Statistical Unit:** Site Group
 > **Execution Mode:** Deterministic Python pipeline
 
 ---
@@ -13,22 +15,33 @@
 
 Branch 06 (G2) is designed for **N-glycosite-level Refined-TPP experiments containing biological replicates but no technical replicates**.
 
-The pipeline integrates protein-level TMT quantification with N-glycopeptide-level measurements to estimate site-specific stability shifts while accounting for the corresponding protein-level Rm background.
+The standardized G2 workflow separates three concepts that can be conflated in accession-expanded proteomics tables:
+
+1. **quantitative evidence** �?the non-redundant TMT signal actually measured;
+2. **quantitative/statistical units** �?Protein Groups at protein level and Site Groups at site level;
+3. **biological annotations** �?UniProt accessions and accession-specific candidate N-glycosites compatible with the quantitative evidence.
+
+The guiding principle is:
+
+> **Quantification is performed at the level of non-redundant quantitative evidence, whereas all compatible protein and site assignments are retained as biological annotations.**
+
+Therefore, repeated accession assignments of the same PEAKS quantitative profile do not automatically multiply quantitative weight. Likewise, one shared N-glycopeptide can retain several candidate accession:site annotations without automatically creating several independent statistical tests.
 
 The major analytical stages include:
 
-1. Protein-level TMT quantification quality control
-2. Control-proteome Rm calculation and replicate-median normalization
-3. N-glycopeptide identification using peptide modification annotations and UniProt protein sequences
-4. N-glycosite-level intensity aggregation
-5. Quantification completeness filtering
-6. Protein–glycosite matching
-7. Raw-Rm coefficient-of-variation quality control
-8. Replicate-level ΔRm calculation
-9. ΔRm distribution assessment
-10. Statistical identification of candidate stability-associated N-glycosites
+1. Protein-group TMT quantification quality control
+2. Control Protein-Group Rm calculation and replicate-median normalization
+3. Non-redundant peptide quantitative-evidence construction
+4. N-glycopeptide detection and UniProt sequence mapping
+5. Candidate site-assignment construction
+6. Site-Group aggregation
+7. Quantification completeness filtering
+8. Protein-Group / Site-Group raw-Rm CV quality control
+9. Replicate-level Site-Group ΔRm calculation
+10. ΔRm distribution assessment and statistical testing
+11. Structured QC, result, provenance, and metadata output
 
-> **Important:** All numerical processing, normalization, filtering, quality control, and statistical testing are performed by the deterministic Python pipeline. In the initial platform release, the AI agent acts as an interactive decision-support and workflow-navigation layer before analysis, and as a result-summary and report-generation layer after analysis.
+> **Important:** All numerical processing, normalization, filtering, quality control, and statistical testing are performed by the deterministic Python pipeline. The AI agent supports scientific decision-making without replacing it.
 
 ---
 
@@ -39,17 +52,119 @@ G2 is appropriate when the experimental design satisfies all of the following co
 | Criterion | Requirement |
 |---|---|
 | Analysis level | N-glycosite |
-| Biological replicates | ✅ Present |
-| Technical replicates | ❌ Absent |
-| Protein-level reference quantification | ✅ Required |
-| Peptide-level TMT quantification | ✅ Required |
-| Protein sequence FASTA | ✅ Required |
+| Biological replicates | �?Present |
+| Technical replicates | �?Absent |
+| Protein-level TMT reference | �?Required |
+| Peptide-level TMT quantification | �?Required |
+| Protein sequence FASTA | �?Required |
 
-In the web platform, the AI agent communicates with the user to clarify the experimental design and relevant analysis settings. Based on the information provided by the user, the agent explains the applicable workflow and recommends `Branch06_G2` when the dataset contains N-glycosite-level measurements with biological replicates but no technical replicates.
+In the web platform, the AI agent communicates with the user to clarify the experimental design and relevant analysis settings. Based on the user-provided information, the agent explains applicable workflows and recommends `Branch06_G2` when the dataset contains N-glycosite-level measurements with biological replicates but no technical replicates.
 
-The agent supports scientific decision-making without replacing it. The user remains informed of the selected workflow and relevant analysis choices before the deterministic Python pipeline is executed.
+The user remains informed of workflow selection and relevant analysis choices before the deterministic Python pipeline is executed.
 
-For local execution, the G2 Python script can be run directly without the AI agent.
+For local execution, G2 can be run directly without an AI agent or required JSON input.
+
+---
+
+# 🧩 Quantitative Units and Biological Annotation
+
+## Protein Group (PG)
+
+A **Protein Group** is the protein-level quantitative unit.
+
+Within a PEAKS Protein Group, member accessions can represent different biological proteins or isoforms, but PEAKS may report the same quantitative TMT profile for those member rows because the available peptide evidence does not distinguish them quantitatively.
+
+Accordingly:
+
+- each unique Protein Group contributes **one protein-level quantitative profile**;
+- each unique Protein Group contributes **one weight** to Rm normalization;
+- member accessions are retained as biological and sequence identities;
+- the pipeline validates that accession rows assigned to the same Protein Group have consistent reporter-ion profiles before collapsing them to one quantitative row.
+
+Thus:
+
+```text
+Protein Group 930
+├── P36507
+└── Q02750
+```
+
+is represented quantitatively as one PG, while both accessions remain available for sequence mapping and annotation.
+
+---
+
+## Peptide Quantitative Evidence
+
+PEAKS peptide exports can contain the same quantitative peptide signal repeated across compatible accessions.
+
+The standardized G2 workflow therefore constructs a non-redundant **peptide quantitative-evidence unit** before site-level analysis.
+
+Conceptually:
+
+```text
+PEAKS accession-expanded rows
+        �?collapse duplicate representation of the same quantitative evidence
+        �?PeptideEvidenceID
+```
+
+A repeated accession assignment does not cause the same reporter-ion profile to be counted multiple times.
+
+All compatible accessions are nevertheless retained for downstream FASTA mapping and candidate-site annotation.
+
+---
+
+## Site Group (SG)
+
+A **Site Group** is the site-level quantitative and statistical unit.
+
+A Site Group is defined by:
+
+- one uniquely defined Protein Group; and
+- one candidate accession:site assignment set supported by one or more peptide quantitative-evidence units.
+
+A Site Group can therefore contain:
+
+- one uniquely assigned candidate site; or
+- multiple candidate accession-specific sites that remain ambiguous within the same Protein Group.
+
+Example:
+
+```text
+SiteGroupID = SG000001
+ProteinGroup = 930
+CandidateSites = P36507:N123;Q02750:N118
+MappingStatus = ambiguous_within_protein_group
+```
+
+This represents:
+
+- **one site-level quantitative profile**;
+- **one statistical hypothesis**;
+- **two retained biological candidate-site annotations**.
+
+Candidate annotations do not multiply quantitative weight or the number of statistical tests.
+
+---
+
+## Cross-Protein-Group Ambiguity
+
+If one peptide quantitative evidence is compatible with candidate sites from more than one Protein Group, the matched protein-level reference is not unique.
+
+For example:
+
+```text
+shared evidence
+├── PG930  / P36507:N123
+└── PG1200 / QXXXXX:N118
+```
+
+Because the canonical ΔRm definition requires a unique matched Protein Group, such evidence is:
+
+- retained in peptide-level mapping/QC output;
+- annotated as `ambiguous_across_protein_groups`;
+- excluded from canonical Site-Group ΔRm analysis.
+
+The pipeline does not silently choose one Protein Group reference.
 
 ---
 
@@ -59,40 +174,42 @@ For local execution, the G2 Python script can be run directly without the AI age
 
 The protein-level table is used to:
 
-- assess protein quantification completeness;
+- identify PEAKS Protein Groups and member accessions;
+- assess protein-group quantification completeness;
 - identify the control/reference sample;
-- calculate protein-level Rm values;
+- calculate Protein-Group Rm values;
 - estimate replicate-specific normalization factors;
-- provide the protein-level reference for site-specific ΔRm calculation.
+- provide the matched Protein-Group reference for Site-Group ΔRm.
 
-The pipeline expects TMT reporter-ion measurements corresponding to the six channels:
+The pipeline expects reporter-ion measurements for the six channels:
 
 `126`, `127`, `128`, `129`, `130`, and `131`.
 
----
+Reporter channels are mapped by **channel identity encoded in the column name**, not by dataframe column order.
+
+Each detected sample must contain exactly one reporter column for each required channel. Missing or duplicated channels cause an explicit error.
 
 ### 2. Peptide-Level TMT Quantification Table
 
-The peptide-level table is used for:
+The peptide table is used for:
 
+- non-redundant peptide quantitative-evidence construction;
 - N-glycopeptide detection;
-- peptide-to-protein mapping;
-- site-level intensity aggregation;
-- N-glycosite Rm calculation.
+- accession-aware peptide-to-protein mapping;
+- candidate-site assignment;
+- Site-Group intensity aggregation.
 
-Peptide sequences should contain modification annotations from the database-search result.
-
----
+Required biological identity fields include PEAKS Protein Group, accession, and peptide sequence. Reporter-channel completeness is validated explicitly.
 
 ### 3. UniProt Protein FASTA
 
 A UniProt-compatible FASTA file is required to:
 
-- normalize protein accession identifiers;
-- map stripped peptide sequences back to proteins;
+- normalize accession identifiers;
+- map stripped peptide sequences to candidate proteins;
 - determine absolute N-glycosite positions;
 - validate the canonical N-glycosylation sequon;
-- extract sequence motifs surrounding identified sites.
+- extract sequence motifs around candidate sites.
 
 ---
 
@@ -101,344 +218,381 @@ A UniProt-compatible FASTA file is required to:
 ```mermaid
 flowchart TD
 
-    A[Protein-level TMT Quantification] --> B[Protein Quantification QC]
-    B --> C[Control Proteins with Complete Quantification]
-    C --> D[Calculate Raw Protein Rm]
-    D --> E[Replicate-Median Normalization]
+    A[Protein-level PEAKS TMT table] --> B[Validate explicit TMT channel mapping]
+    B --> C[Validate member profiles within each Protein Group]
+    C --> D[Collapse to one quantitative row per Protein Group]
+    D --> E[Protein-Group QC and complete quantification]
+    E --> F[Calculate raw PG Rm]
+    F --> G[Replicate-median normalization across unique PGs]
 
-    F[Peptide-level TMT Quantification] --> G[Detect N carrying +0.98 Da modification]
-    H[UniProt FASTA] --> I[Peptide-to-Protein Sequence Mapping]
+    H[Peptide-level PEAKS TMT table] --> I[Validate peptide reporter channels]
+    I --> J[Construct non-redundant PeptideEvidenceID units]
+    K[UniProt FASTA] --> L[FASTA mapping and N-X-S/T validation]
+    J --> L
+    L --> M[Retain all valid accession:site candidates]
+    M --> N{Candidates span multiple Protein Groups?}
+    N -->|Yes| O[Retain cross-PG evidence for QC / annotation]
+    N -->|No| P[Construct Site Groups]
 
-    G --> I
-    I --> J[Validate N-X-S/T Sequon]
-    J --> K[N-Glycopeptide Table]
-    K --> L[Aggregate Peptides to N-Glycosite Level]
+    P --> Q[Aggregate supporting peptide evidence per Site Group]
+    Q --> R[Complete six-channel Site-Group quantification]
+    G --> S[Match each Site Group to its Protein Group]
+    R --> S
 
-    L --> M[Filter Sites with Complete 6-Channel Quantification]
-    E --> N[Match Sites to Completely Quantified Proteins]
-    M --> N
+    S --> T[Raw PG and SG Rm CV QC]
+    T --> U[Apply PG-derived normalization factors to SG Rm]
+    U --> V[Calculate replicate-level DeltaRm: SG minus matched PG]
+    V --> W[Assess replicate-level DeltaRm distributions]
 
-    N --> O[Calculate Raw Glycosite Rm]
-    O --> P[Apply Protein-Derived Normalization Factors]
+    W -->|Approximately normal| X[CV-guided robust statistical branch]
+    W -->|Not approximately normal| Y[Paired normalized-Rm statistical branch]
 
-    P --> Q[Calculate Replicate-Level DeltaRm]
-    E --> Q
-
-    Q --> R[Raw-Rm CV Quality Control]
-    R --> S[Assess DeltaRm Distribution]
-
-    S -->|Approximately Normal| T[CV-Guided Robust Statistical Analysis]
-    S -->|Not Approximately Normal| U[Paired Replicate-Level Statistical Test]
-
-    T --> V[Candidate Significant N-Glycosites]
-    U --> V
-
-    V --> W[Tables, QC Figures and Run Metadata]
+    X --> Z[Significant Site Groups]
+    Y --> Z
+    Z --> AA[Results, QC, candidate annotations and run metadata]
 ```
 
 ---
 
 # 🧪 Processing Details
 
-## Step 1 — Protein Quantification QC
+## Step 1 �?Protein Quantification QC and Protein-Group Construction
 
-The protein-level TMT table is first inspected for reporter-ion quantification completeness.
+The protein-level TMT table is first validated for:
 
-Proteins may optionally be filtered according to the number of unique peptides supporting protein identification.
+- a detectable Protein Group column;
+- a detectable accession column;
+- explicit sample identities;
+- exactly one TMT reporter column for each of channels 126�?31 per sample.
 
-For each biological sample, proteins with non-zero TMT reporter intensities are summarized. Depending on the number of samples, quantified-protein overlap can be visualized using either:
+The workflow does **not** infer reporter-channel identity from column position. If sample/channel mapping cannot be inferred safely from the column names, execution stops instead of guessing positional blocks.
 
-- Venn diagrams; or
-- UpSet plots.
+Protein rows can optionally be filtered according to a user-defined minimum number of unique peptides.
 
-For downstream Rm analysis, the pipeline retains proteins with complete reporter-ion quantification in all required TMT channels.
+After filtering, rows belonging to the same Protein Group are checked for reporter-profile consistency. A Protein Group can be collapsed to one quantitative row only when its member rows have the same quantitative reporter profile within numerical tolerance.
+
+The output distinguishes:
+
+- Protein Group count;
+- member accession count;
+- complete-quantification Protein Group count.
+
+Normalization and protein-level CV analysis operate on **unique Protein Groups**, not accession-expanded rows.
 
 ---
 
-## Step 2 — Protein-Level Rm Calculation
+## Step 2 �?Protein-Group Rm Calculation
 
-For each completely quantified control protein, three replicate-level Rm values are calculated:
+For Protein Group $g$ and TMT channel $c$, let $I^{PG}_{g,c}$ denote Protein-Group reporter intensity.
 
-\[
-Rm_1 = \frac{I_{129}}{I_{127}}
-\]
+Three biological-replicate Rm values are calculated:
 
-\[
-Rm_2 = \frac{I_{130}}{I_{128}}
-\]
+$$
+Rm^{PG}_{g,1}
+=
+\frac{I^{PG}_{g,129}}{I^{PG}_{g,127}}
+$$
 
-\[
-Rm_3 = \frac{I_{131}}{I_{126}}
-\]
+$$
+Rm^{PG}_{g,2}
+=
+\frac{I^{PG}_{g,130}}{I^{PG}_{g,128}}
+$$
 
-where \(I_x\) represents the reporter-ion intensity of TMT channel \(x\).
+$$
+Rm^{PG}_{g,3}
+=
+\frac{I^{PG}_{g,131}}{I^{PG}_{g,126}}
+$$
 
 Each Rm corresponds to one biological replicate.
 
 ---
 
-## Step 3 — Replicate-Median Rm Normalization
+## Step 3 �?Replicate-Median Rm Normalization
 
 Systematic differences among biological replicates are corrected using **multiplicative replicate-median normalization**.
 
-For each replicate:
+For replicate $i$, the normalization population consists of unique control Protein Groups passing the relevant QC filters:
 
-\[
-M_i = median(Rm_i)
-\]
+$$
+M_i
+=
+\operatorname{median}_{g}
+\left(
+Rm^{PG}_{g,i}
+\right)
+$$
 
-where \(M_i\) is the median Rm across all completely quantified control proteins in replicate \(i\).
+The common reference center is:
 
-A common reference center is defined as:
-
-\[
-M_{ref}
+$$
+T
 =
 \exp
 \left[
-median
+\operatorname{median}_{i}
 \left(
-\log M_1,
-\log M_2,
-\log M_3
+\log M_i
 \right)
 \right]
-\]
+$$
 
-The correction factor for replicate \(i\) is:
+The replicate-specific correction factor is:
 
-\[
-CF_i = \frac{M_{ref}}{M_i}
-\]
-
-Normalized protein Rm values are then calculated as:
-
-\[
-Rm_{protein,i}^{norm}
+$$
+CF_i
 =
-Rm_{protein,i}^{raw}
-\times CF_i
-\]
+\frac{T}{M_i}
+$$
 
-The same replicate-specific correction factors are subsequently applied to N-glycosite Rm values, ensuring that protein-level and site-level measurements remain on the same normalized scale.
+Normalized Protein-Group Rm is:
 
----
-
-## Step 4 — N-Glycopeptide Identification
-
-Candidate N-glycopeptides are identified by searching for **asparagine residues carrying a +0.98 Da modification**.
-
-The implementation does not require `+0.98` to be the only modification associated with the residue. An N residue may contain additional modification annotations as long as a mass shift compatible with `+0.98 Da` is present.
-
-After modification parsing:
-
-1. modification annotations are removed to obtain the stripped peptide sequence;
-2. the peptide is mapped to its corresponding UniProt protein sequence;
-3. the absolute position of the modified N residue is determined;
-4. the surrounding sequence is inspected for the canonical N-glycosylation sequon:
-
-\[
-N-X-S/T
-\]
-
-where:
-
-\[
-X \neq P
-\]
-
-Only modified N residues satisfying the sequon requirement are retained as candidate N-glycosylation sites.
-
----
-
-## Step 5 — Peptide-to-Site Aggregation
-
-Multiple quantified peptides may represent the same N-glycosylation site.
-
-The G2 pipeline therefore converts peptide-level measurements into a site-centric representation.
-
-For each unique combination of:
-
-`Protein Accession + N-Glycosite`
-
-the intensities of all peptides supporting that site are summed independently for each TMT channel.
-
-The resulting table contains one row for each unique N-glycosite.
-
-A user-defined sequence window can additionally be extracted around each site from the UniProt sequence for motif annotation.
-
----
-
-## Step 6 — Complete Site Quantification Filtering
-
-Only N-glycosites with complete quantification across all six required TMT reporter channels are retained for downstream Rm analysis.
-
-Zero reporter intensity is treated as missing quantification during this completeness filter.
-
-The retained site table therefore represents N-glycosites with sufficient quantitative information to calculate all three biological-replicate Rm values.
-
----
-
-## Step 7 — Protein–Glycosite Matching
-
-Calculation of site-specific ΔRm requires both:
-
-- a completely quantified N-glycosite; and
-- a completely quantified protein-level reference for the corresponding protein.
-
-The pipeline therefore intersects:
-
-1. proteins with complete control-proteome quantification; and
-2. proteins containing completely quantified N-glycosites.
-
-Only matched protein–site pairs proceed to ΔRm analysis.
-
----
-
-## Step 8 — N-Glycosite Rm Calculation
-
-For each retained N-glycosite:
-
-\[
-Rm_{glyco,1}^{raw}
+$$
+Rm^{PG,\mathrm{norm}}_{g,i}
 =
-\frac{I_{129}}{I_{127}}
-\]
+Rm^{PG}_{g,i}\times CF_i
+$$
 
-\[
-Rm_{glyco,2}^{raw}
-=
-\frac{I_{130}}{I_{128}}
-\]
+The same correction factors are subsequently applied to Site-Group Rm values.
 
-\[
-Rm_{glyco,3}^{raw}
-=
-\frac{I_{131}}{I_{126}}
-\]
-
-The replicate-specific correction factors obtained from the control proteome are then applied:
-
-\[
-Rm_{glyco,i}^{norm}
-=
-Rm_{glyco,i}^{raw}
-\times CF_i
-\]
-
-Importantly, normalization factors are estimated from the protein-level control dataset and are **not independently estimated from the glycosite dataset**.
+> **Important:** Each unique Protein Group has one normalization weight. A Protein Group containing multiple member accessions does not receive additional weight merely because its quantitative profile is repeated across accession rows.
 
 ---
 
-# 🛡️ Raw-Rm CV Quality Control
+## Step 4 �?Non-Redundant Peptide Quantitative Evidence
 
-## Step 9 — Protein and Glycosite CV Calculation
+Before N-glycosite mapping, accession-expanded peptide rows representing the same quantitative peptide evidence are collapsed.
 
-Coefficient of variation is calculated using **raw, non-normalized Rm values**.
+Each non-redundant observation receives a `PeptideEvidenceID`.
 
-For each protein:
+The pipeline retains:
 
-\[
-CV_{protein}
+- modified peptide sequence;
+- stripped peptide sequence after parsing;
+- Protein Group relationship;
+- all candidate accessions;
+- one reporter-ion profile;
+- optional localization metrics such as AScore when available.
+
+If duplicate representations expected to describe one quantitative evidence record contain inconsistent reporter-ion profiles, the pipeline does not silently merge them.
+
+---
+
+## Step 5 �?N-Glycopeptide Identification and Candidate-Site Mapping
+
+Candidate N-glycopeptides are identified by searching for **asparagine residues carrying a mass shift compatible with +0.98 Da**.
+
+The parser allows other modifications to occur on the same N residue. For example, an N residue containing both `+42.01` and `+0.98` can still be recognized if the +0.98-like modification is attached to that N.
+
+Malformed modification annotations such as unmatched parentheses cause an explicit parsing error rather than an infinite loop or silent truncation.
+
+For each peptide quantitative evidence:
+
+1. modification annotations are parsed to obtain the stripped peptide sequence;
+2. all candidate accessions are mapped to UniProt sequences;
+3. the absolute position of each modified N is determined;
+4. the canonical sequon $N-X-S/T$, where $X \neq P$, is validated;
+5. all valid accession:site candidates are retained.
+
+The resulting mapping can be:
+
+- `unique` �?one candidate site;
+- `ambiguous_within_protein_group` �?multiple candidate sites within one PG;
+- `ambiguous_across_protein_groups` �?candidate sites spanning multiple PGs.
+
+---
+
+## Step 6 �?Site-Group Construction and Peptide Aggregation
+
+For a peptide evidence $e$, let $C_e$ denote its candidate accession:site assignment set.
+
+Peptide evidences are aggregated into the same Site Group when they share:
+
+- the same Protein Group; and
+- the same candidate-site assignment set.
+
+Thus, if:
+
+$$
+C_{e_1}=C_{e_2}
+$$
+
+within the same Protein Group, the evidences can support one Site Group.
+
+If candidate sets overlap but are not identical, the workflow does not automatically propagate or resolve the ambiguity.
+
+For example:
+
+```text
+Peptide A �?{P36507:N123}
+Peptide B �?{P36507:N123, Q02750:N118}
+```
+
+are retained as different Site Groups because assigning peptide B to the unique site would require an additional site-inference assumption.
+
+For Site Group $s$, let $E_s$ be the set of supporting peptide quantitative-evidence units. Reporter intensity is summed once per evidence:
+
+$$
+I^{SG}_{s,c}
+=
+\sum_{e\in E_s} I_{e,c}
+$$
+
+A repeated accession annotation of the same peptide evidence does not duplicate its intensity contribution.
+
+---
+
+## Step 7 �?Complete Site-Group Quantification Filtering
+
+Only Site Groups with complete quantification across all six required reporter channels for the selected glycosite sample group are retained for downstream Rm analysis.
+
+Zero reporter intensity is treated as missing for this completeness filter.
+
+QC reporting distinguishes:
+
+- total Site Groups;
+- uniquely assigned Site Groups;
+- ambiguous-within-PG Site Groups;
+- candidate site annotations;
+- cross-PG ambiguous evidence retained outside canonical ΔRm analysis.
+
+---
+
+## Step 8 �?Site-Group Rm Calculation and Protein-Group Matching
+
+For Site Group $s$:
+
+$$
+Rm^{SG}_{s,1}
+=
+\frac{I^{SG}_{s,129}}{I^{SG}_{s,127}}
+$$
+
+$$
+Rm^{SG}_{s,2}
+=
+\frac{I^{SG}_{s,130}}{I^{SG}_{s,128}}
+$$
+
+$$
+Rm^{SG}_{s,3}
+=
+\frac{I^{SG}_{s,131}}{I^{SG}_{s,126}}
+$$
+
+The Protein-Group-derived correction factors are applied:
+
+$$
+Rm^{SG,\mathrm{norm}}_{s,i}
+=
+Rm^{SG}_{s,i}\times CF_i
+$$
+
+Each Site Group entering canonical G2 analysis must map to one unique matched Protein Group $g(s)$.
+
+The correction factors are estimated only from the control Protein-Group population and are **not independently estimated from Site Groups**.
+
+---
+
+# 🛡�?Raw-Rm CV Quality Control
+
+## Step 9 �?Protein-Group and Site-Group CV
+
+Coefficient of variation is calculated from **raw, non-normalized Rm values**.
+
+For Protein Group $g$:
+
+$$
+CV^{PG}_{g}
 =
 \frac{
-SD(Rm_{protein,1}^{raw},
-Rm_{protein,2}^{raw},
-Rm_{protein,3}^{raw})
+\operatorname{SD}_{i}
+\left(Rm^{PG}_{g,i}\right)
 }{
-Mean(Rm_{protein,1}^{raw},
-Rm_{protein,2}^{raw},
-Rm_{protein,3}^{raw})
+\operatorname{Mean}_{i}
+\left(Rm^{PG}_{g,i}\right)
 }
-\]
+$$
 
-For each N-glycosite:
+For Site Group $s$:
 
-\[
-CV_{glycosite}
+$$
+CV^{SG}_{s}
 =
 \frac{
-SD(Rm_{glyco,1}^{raw},
-Rm_{glyco,2}^{raw},
-Rm_{glyco,3}^{raw})
+\operatorname{SD}_{i}
+\left(Rm^{SG}_{s,i}\right)
 }{
-Mean(Rm_{glyco,1}^{raw},
-Rm_{glyco,2}^{raw},
-Rm_{glyco,3}^{raw})
+\operatorname{Mean}_{i}
+\left(Rm^{SG}_{s,i}\right)
 }
-\]
+$$
 
-A user-defined CV threshold is applied jointly.
+A user-defined CV threshold is applied jointly. A Site Group proceeds only when:
 
-A site proceeds to differential analysis only when:
-
-\[
-CV_{protein} \leq CV_{threshold}
-\]
+$$
+CV^{PG}_{g(s)}\leq CV_{\mathrm{threshold}}
+$$
 
 and
 
-\[
-CV_{glycosite} \leq CV_{threshold}
-\]
+$$
+CV^{SG}_{s}\leq CV_{\mathrm{threshold}}
+$$
 
-This ensures that downstream ΔRm inference is based on reproducible protein-level and site-level measurements.
+> **Important:** CV is calculated before replicate-median normalization. Normalized Rm values are used for ΔRm and paired statistical comparison.
 
 ---
 
 # 📐 ΔRm Calculation
 
-## Step 10 — Replicate-Level ΔRm
+## Step 10 �?Replicate-Level Site-Group ΔRm
 
-For each biological replicate:
+For Site Group $s$ with unique matched Protein Group $g(s)$:
 
-\[
-\Delta Rm_i
+$$
+\boxed{
+\Delta Rm_{s,i}
 =
-Rm_{glyco,i}^{norm}
+Rm^{SG,\mathrm{norm}}_{s,i}
 -
-Rm_{protein,i}^{norm}
-\]
+Rm^{PG,\mathrm{norm}}_{g(s),i}
+}
+$$
 
-Thus:
+Thus, each replicate-level ΔRm represents the Site-Group stability shift relative to the matched Protein-Group reference in the same biological replicate.
 
-\[
-\Delta Rm_1,\quad
-\Delta Rm_2,\quad
-\Delta Rm_3
-\]
+The final Site-Group effect size is the arithmetic mean:
 
-represent the site-specific stability shift relative to the corresponding protein-level reference in each biological replicate.
-
-The final effect-size estimate is:
-
-\[
-\Delta Rm_{mean}
+$$
+\boxed{
+\overline{\Delta Rm}_{s}
 =
-Mean(
-\Delta Rm_1,
-\Delta Rm_2,
-\Delta Rm_3
-)
-\]
+\frac{1}{3}
+\sum_{i=1}^{3}\Delta Rm_{s,i}
+}
+$$
 
 The default positive effect-size criterion is:
 
-\[
-\Delta Rm_{mean} > 0.1
-\]
+$$
+\boxed{
+\overline{\Delta Rm}_{s}>0.1
+}
+$$
 
-> **Important:** The `0.1` threshold is applied to the **mean ΔRm across biological replicates**, rather than requiring every individual replicate to have `ΔRm > 0.1`.
+> **Important:** The `0.1` threshold is applied to the **mean ΔRm across biological replicates**. Individual replicate ΔRm values are not independently required to exceed `0.1`.
 
-Replicate-level ΔRm values remain available for quality assessment and statistical analysis.
+The current normal-branch implementation can additionally require all replicate-level ΔRm values to remain in the positive direction. This direction-consistency rule is distinct from the mean effect-size threshold.
 
 ---
 
 # 📊 Statistical Analysis
 
-## Step 11 — ΔRm Distribution Assessment
+## Step 11 �?ΔRm Distribution Assessment
 
-Following CV filtering, the distribution of ΔRm is evaluated independently for each biological replicate.
+Following joint PG/SG CV filtering, the distribution of replicate-level ΔRm is evaluated independently for each biological replicate.
 
 Diagnostic outputs include:
 
@@ -447,63 +601,82 @@ Diagnostic outputs include:
 - P-P plot;
 - sample-size-adaptive normality assessment.
 
-The statistical branch used for downstream inference depends on the resulting distributional assessment.
+The downstream statistical route depends on this distributional assessment.
 
 ---
 
-## Route A — Approximately Normal ΔRm Distribution
+## Route A �?Approximately Normal ΔRm Distribution
 
 When all replicate-level ΔRm distributions are considered approximately normal, G2 uses a **CV-guided binning strategy**.
 
-Sites are ordered using a representative CV measure derived from protein-level and glycosite-level variability.
+Site Groups are ordered using a representative CV measure derived from Protein-Group and Site-Group variability.
 
 Within CV-matched bins, replicate-specific one-tailed significance values are estimated using a robust median-centered variance model.
 
-Statistical inference is performed independently for each biological replicate before replicate-level evidence is combined.
+Statistical inference is performed separately for each biological replicate before replicate-level evidence is combined.
 
-The current implementation can retain a positive-direction consistency requirement across biological replicates.
+The current consensus rule can require:
 
-The biological effect-size criterion remains:
+- all replicate ΔRm values to have positive direction;
+- mean ΔRm to exceed the configured threshold;
+- all replicate significance values to be below 0.10;
+- at least one replicate significance value to be below 0.05.
 
-\[
-\Delta Rm_{mean} > 0.1
-\]
+The effect-size criterion remains:
+
+$$
+\overline{\Delta Rm}_{s}>0.1
+$$
 
 and is not replaced by replicate-specific `ΔRm > 0.1` thresholds.
 
+The binning helper prevents zero-width bins when the requested bin count exceeds the number of available Site Groups.
+
 ---
 
-## Route B — Non-Normal ΔRm Distribution
+## Route B �?Non-Normal ΔRm Distribution
 
-If at least one replicate-level ΔRm distribution does not satisfy the normality criterion, site-level paired testing is used.
+If at least one replicate-level ΔRm distribution does not satisfy the normality criterion, Site-Group-level paired testing is used.
 
-For each N-glycosite, normalized protein and glycosite Rm values are paired by biological replicate:
+For Site Group $s$, normalized Protein-Group and Site-Group Rm values are paired by biological replicate:
 
-| Biological Replicate | Protein Reference | N-Glycosite |
+| Biological replicate | Matched Protein Group | Site Group |
 |---|---|---|
-| Replicate 1 | \(Rm_{protein,1}^{norm}\) | \(Rm_{glyco,1}^{norm}\) |
-| Replicate 2 | \(Rm_{protein,2}^{norm}\) | \(Rm_{glyco,2}^{norm}\) |
-| Replicate 3 | \(Rm_{protein,3}^{norm}\) | \(Rm_{glyco,3}^{norm}\) |
+| Replicate 1 | $Rm^{PG,\mathrm{norm}}_{g(s),1}$ | $Rm^{SG,\mathrm{norm}}_{s,1}$ |
+| Replicate 2 | $Rm^{PG,\mathrm{norm}}_{g(s),2}$ | $Rm^{SG,\mathrm{norm}}_{s,2}$ |
+| Replicate 3 | $Rm^{PG,\mathrm{norm}}_{g(s),3}$ | $Rm^{SG,\mathrm{norm}}_{s,3}$ |
 
-The default non-parametric option is the **one-tailed Wilcoxon signed-rank test**.
+The default non-parametric option is the **one-tailed paired Wilcoxon signed-rank test**.
 
-A paired t-test can optionally be selected when appropriate.
+A paired t-test can optionally be selected.
 
 For the positive-stability direction, the alternative hypothesis is:
 
-\[
-Rm_{glycosite}^{norm}
+$$
+Rm^{SG,\mathrm{norm}}_{s}
 >
-Rm_{protein}^{norm}
-\]
+Rm^{PG,\mathrm{norm}}_{g(s)}
+$$
 
-Because the paired differences are equivalent to replicate-level ΔRm values, the test evaluates whether the glycosite exhibits a positive stability shift relative to its protein-level reference.
+Because paired differences equal replicate-level ΔRm:
+
+$$
+Rm^{SG,\mathrm{norm}}_{s,i}
+-
+Rm^{PG,\mathrm{norm}}_{g(s),i}
+=
+\Delta Rm_{s,i}
+$$
+
+the paired test evaluates whether the Site Group exhibits a positive stability shift relative to its matched Protein Group.
+
+With only three biological pairs, Wilcoxon p-value resolution is intrinsically limited. The pipeline reports this limitation when relevant, particularly when BH correction can make a nominal FDR threshold unattainable.
 
 ---
 
 ## 🧮 Multiple-Testing Correction
 
-Benjamini–Hochberg multiple-testing correction is available as an optional analysis setting.
+Benjamini–Hochberg multiple-testing correction is user-selectable.
 
 ### BH enabled
 
@@ -517,28 +690,68 @@ The unadjusted significance metric is:
 
 `p_value`
 
-The output explicitly records whether BH correction was applied so that raw p-values are not mislabeled as FDR values.
+Raw p-values are never relabeled as FDR values.
+
+### Statistical unit
+
+One hypothesis corresponds to one **SiteGroupID**.
+
+If a Site Group has multiple candidate annotations, for example:
+
+```text
+SG000001
+├── P36507:N123
+└── Q02750:N118
+```
+
+it still contributes one statistical hypothesis.
+
+Therefore, candidate annotation expansion does not change the BH hypothesis count.
 
 ---
 
 # 📈 Quality-Control and Diagnostic Outputs
 
-The G2 pipeline generates multiple QC visualizations, including:
+G2 reports both quantitative-unit counts and biological annotation counts so that accession expansion is not confused with additional independent quantitative information.
 
-- quantified-protein overlap plots;
-- N-glycopeptide intensity composition;
-- N-glycosite-count distribution per protein;
-- protein Rm CV distribution;
-- N-glycosite Rm CV distribution;
-- protein-CV versus glycosite-CV scatter plot;
+Recommended QC quantities include:
+
+- raw protein-table row count;
+- unique Protein Group count;
+- member accession count;
+- completely quantified Protein Group count;
+- raw peptide-table row count;
+- unique peptide quantitative-evidence count;
+- valid N-glycopeptide evidence count;
+- uniquely mapped peptide-evidence count;
+- ambiguous-within-PG peptide-evidence count;
+- ambiguous-across-PG peptide-evidence count;
+- total Site Group count;
+- unique Site Group count;
+- ambiguous-within-PG Site Group count;
+- candidate accession:site annotation count;
+- completely quantified Site Group count;
+- Site Groups matched to a complete Protein-Group reference;
+- Site Groups passing joint raw-Rm CV QC;
+- Site Groups entering statistical analysis;
+- significant Site Group count.
+
+The pipeline also generates visual QC outputs such as:
+
+- Protein-Group quantification overlap plots;
+- non-redundant N-glycopeptide intensity composition;
+- Site-Group count distribution per Protein Group;
+- Protein-Group raw-Rm CV distribution;
+- Site-Group raw-Rm CV distribution;
+- Protein-Group CV versus Site-Group CV scatter plot;
 - replicate-level ΔRm histograms;
 - Q-Q plots;
 - P-P plots;
 - significance-versus-binning diagnostics where applicable;
 - volcano-like significance plots;
-- paired protein-versus-glycosite Rm visualizations where applicable.
+- paired Protein-Group-versus-Site-Group normalized Rm visualizations where applicable.
 
-These figures are intended for analytical inspection and should be interpreted together with the exported quantitative tables.
+A count of candidate sites should not be interpreted as the number of independent quantitative Site Groups unless all Site Groups are uniquely assigned.
 
 ---
 
@@ -549,29 +762,100 @@ The standardized local G2 implementation organizes output into:
 ```text
 Branch06_G2_output/
 ├── tables/
-│   ├── protein quantification QC
-│   ├── Rm normalization factors
-│   ├── N-glycopeptide table
-│   ├── N-glycosite intensity table
-│   ├── complete-quantification sites
-│   ├── protein/site Rm summaries
-│   ├── ΔRm table
-│   ├── CV-QC-passed sites
-│   └── statistical results
-│
-├── figures/
-│   └── QC and statistical visualizations
-│
-├── metadata/
-│   └── run_parameters.json
-│
-└── intermediate/
+�?  ├── Protein-Group quantification QC
+�?  ├── Rm normalization factors
+�?  ├── non-redundant N-glycopeptide evidence
+�?  ├── Site-Group intensity and annotation tables
+�?  ├── complete-quantification Site Groups
+�?  ├── Protein-Group / Site-Group Rm summaries
+�?  ├── Site-Group ΔRm table
+�?  ├── CV-QC-passed Site Groups
+�?  └── statistical results
+�?├── figures/
+�?  └── QC and statistical visualizations
+�?├── metadata/
+�?  └── run_parameters.json
+�?└── intermediate/
     └── intermediate processing files
 ```
 
-The metadata file records the analytical settings used for the run and improves reproducibility.
+The metadata file records method semantics as well as run-specific parameters, including:
 
-It is generated automatically by the local pipeline and does **not** require the user to provide JSON-formatted input.
+- `protein_quantitative_unit = PEAKS_Protein_Group`;
+- `protein_member_identity_unit = UniProt_accession`;
+- Site-Group definition;
+- shared-peptide policy;
+- candidate-annotation policy;
+- one-vote-per-Protein-Group normalization weighting;
+- SiteGroupID as the multiple-testing unit;
+- Rm, normalization, CV, and ΔRm formula definitions;
+- CV threshold;
+- ΔRm threshold;
+- BH enabled/disabled state;
+- normality settings and statistical-route information.
+
+The metadata is generated automatically by local execution and does **not** require JSON-formatted user input.
+
+---
+
+# 🧾 Key Machine-Readable Output Semantics
+
+Protein-level derived fields use explicit Protein-Group naming, for example:
+
+```text
+protein_group_rm_rep1_raw
+protein_group_rm_rep2_raw
+protein_group_rm_rep3_raw
+protein_group_rm_rep1_norm
+protein_group_rm_rep2_norm
+protein_group_rm_rep3_norm
+protein_group_rm_norm_mean
+protein_group_rm_raw_cv
+```
+
+Site-level derived fields use explicit Site-Group naming:
+
+```text
+site_group_rm_rep1_raw
+site_group_rm_rep2_raw
+site_group_rm_rep3_raw
+site_group_rm_rep1_norm
+site_group_rm_rep2_norm
+site_group_rm_rep3_norm
+site_group_rm_norm_mean
+site_group_rm_raw_cv
+```
+
+The matched Protein-Group reference carried into Site-Group results is also named explicitly, for example:
+
+```text
+matched_protein_group_rm_rep1_norm
+matched_protein_group_rm_rep2_norm
+matched_protein_group_rm_rep3_norm
+matched_protein_group_rm_norm_mean
+matched_protein_group_rm_raw_cv
+```
+
+This avoids treating generic `protein` or `glycosite` labels as if they always referred to accession-specific independent units.
+
+---
+
+# 🛡�?Input Validation and Safety Checks
+
+The standardized G2 implementation includes several safeguards intended to prevent silent analytical errors:
+
+1. **Reporter-ion identity is mapped explicitly.** Channel 126�?31 identity is inferred from the column name, not column position.
+2. **All six reporter channels are required per detected sample.** Missing or duplicated channels cause an error.
+3. **Unsafe positional sample grouping is not used as a silent fallback.** If sample/channel mapping cannot be inferred, the pipeline stops.
+4. **Protein Group and Accession are separate semantic fields.** Protein Group controls protein-level quantitative identity; accession controls sequence identity and site annotation.
+5. **Within-PG reporter profiles are validated before collapse.** Inconsistent member quantitative profiles are not silently reduced to the first accession row.
+6. **Malformed peptide modifications fail explicitly.** Unmatched modification parentheses do not cause a parser loop.
+7. **Small-site binning cannot create zero-width bins.** Effective bin counts are constrained to available Site Groups.
+8. **Shared quantitative peptide evidence is not duplicated by accession expansion.** Candidate biological assignments are retained separately.
+9. **Cross-PG site ambiguity is retained but not forced into a canonical ΔRm reference.**
+10. **Raw p-values and BH-adjusted values use distinct output labels.**
+
+These safeguards include issues identified during code review as well as method-standardization changes introduced in the refined G2 design.
 
 ---
 
@@ -581,11 +865,9 @@ The AI agent is intentionally separated from the numerical analysis pipeline.
 
 Its role is to **support scientific decision-making without replacing it**.
 
-In Release v1, the agent participates at two stages.
+## Before Analysis �?Interactive Decision Support and Workflow Routing
 
-## Before Analysis — Interactive Decision Support and Workflow Routing
-
-The agent communicates with the user to clarify the experimental design and any information required for workflow selection.
+The agent communicates with the user to clarify experimental design and information required for workflow selection.
 
 Typical clarification includes:
 
@@ -593,67 +875,61 @@ Typical clarification includes:
 - whether biological replicates are present;
 - whether technical replicates are present;
 - whether the required protein-, peptide-, and sequence-level inputs are available;
-- whether an experimental-design description is ambiguous and requires further clarification.
+- whether an experimental-design description is ambiguous and requires clarification.
 
-Based on the information provided by the user, the agent:
+Based on user-provided information, the agent:
 
-- explains which pipeline branches are applicable;
-- describes why a particular branch is recommended;
-- highlights relevant analytical implications where necessary;
-- prompts the user when important information is missing;
-- routes the analysis to the appropriate deterministic Python pipeline after the workflow is sufficiently clarified.
+- explains applicable pipeline branches;
+- describes why a branch is recommended;
+- highlights relevant analytical implications;
+- asks for missing information when necessary;
+- routes analysis to the deterministic Python pipeline after workflow selection is sufficiently clarified.
 
-The agent does **not** silently infer experimental-design details that materially affect branch selection.
+The agent does not silently infer experimental-design details that materially affect branch selection.
 
----
+## After Analysis �?Result Interpretation and Reporting
 
-## After Analysis — Result Interpretation and Reporting
-
-After the deterministic Python pipeline has completed, the agent can use the generated:
+After deterministic execution, the agent can use:
 
 - quantitative result tables;
-- QC statistics;
+- PG/SG QC statistics;
+- candidate annotations;
 - statistical results;
 - figures;
 - run metadata;
 
-to summarize the analysis and generate a structured, human-readable report.
+to summarize the analysis and generate a structured report.
 
-The report may include:
+The report can distinguish between:
 
-- a concise description of the workflow used;
-- a summary of data-retention and QC results;
-- major ΔRm and statistical findings;
-- notable QC limitations or warnings;
-- a structured interpretation of pipeline-generated results.
+- significant Site Groups as statistical discoveries; and
+- candidate accession-specific glycosites as biological annotations.
 
----
+For example, a significant ambiguous Site Group should be described as one significant site-level quantitative event with multiple candidate assignments rather than automatically as multiple independent significant glycosites.
 
 ## The Agent Does Not
 
 In Release v1, the AI agent does **not**:
 
 - replace the deterministic numerical pipeline;
-- redefine the mathematical definition of Rm or ΔRm;
-- independently rewrite the statistical workflow;
+- redefine Rm or ΔRm;
+- silently alter Protein-Group or Site-Group quantitative units;
+- rewrite the statistical workflow;
 - silently change CV or significance thresholds;
 - override user-confirmed analytical choices;
-- independently declare sites significant outside the pipeline-defined result;
-- modify statistical results after pipeline execution.
+- independently declare Site Groups significant outside pipeline-defined results;
+- modify statistical results after execution.
 
-This separation preserves reproducibility while allowing the agent to improve workflow accessibility, experimental-design clarification, and result communication.
-
-A simplified Release v1 architecture is:
+A simplified architecture is:
 
 ```mermaid
 flowchart LR
-
     A[User] --> B[AI Agent]
     B --> C[Clarify Experimental Design]
     C --> D[Explain and Recommend Workflow]
     D --> E[User-Informed Workflow Selection]
     E --> F[Deterministic Python Pipeline]
-    F --> G[Structured Results and QC Outputs]
+    F --> G[Structured PG / SG Results and QC]
     G --> H[AI Agent]
     H --> I[Summary and Report]
     I --> A
@@ -663,37 +939,44 @@ flowchart LR
 
 # 💻 Local Execution
 
-G2 can be executed independently of the web platform.
+G2 can be executed independently of the web platform using:
 
 ```bash
-python Branch06_G2.py
+python scripts/local/Branch06_G2.py
 ```
 
-The local version interactively requests required file paths and analytical parameters.
+The local version interactively requests required file paths and analysis parameters.
 
 No AI agent or JSON-formatted user input is required for standalone execution.
+
+The future agent-facing implementation should provide structured parameters to the same deterministic analytical core rather than maintaining a second independent scientific implementation.
 
 ---
 
 # ⚠️ Analytical Notes
 
-1. G2 assumes that biological-replicate channel pairing is correctly defined by the experimental TMT design.
-2. Protein-level and N-glycosite-level Rm values must use the same replicate structure.
-3. The same protein-derived normalization factors are applied to corresponding N-glycosite Rm values.
-4. CV quality control is calculated from raw Rm values.
-5. The default ΔRm effect-size threshold is applied to mean ΔRm across biological replicates.
-6. Multiple-testing correction should be reported explicitly as enabled or disabled.
-7. With a small number of biological replicates, statistical power and p-value resolution may be limited; significance results should therefore be interpreted together with effect size, replicate consistency, and QC metrics.
-8. Agent-generated summaries should reflect the deterministic pipeline outputs and should not be interpreted as independent statistical re-analysis.
+1. **Protein Group is the protein-level quantitative unit.** Member accessions remain biological/sequence annotations.
+2. **Site Group is the site-level quantitative/statistical unit.** Candidate accession:site annotations do not create additional quantitative weight.
+3. Multiple peptide quantitative-evidence units can be aggregated when they support the same Protein Group and the same candidate-site assignment set.
+4. Partially overlapping candidate-site sets are not automatically merged or resolved because doing so would introduce an additional site-inference assumption.
+5. Cross-Protein-Group ambiguous evidence is retained for QC and annotation but excluded from canonical ΔRm because the protein reference is not unique.
+6. Protein-Group and Site-Group Rm use the same biological-replicate channel structure.
+7. Replicate-median correction factors are estimated from unique control Protein Groups and then applied to both PG and SG Rm values.
+8. CV is calculated from raw Rm values before normalization.
+9. The default ΔRm effect-size threshold is applied to mean ΔRm across biological replicates.
+10. The normal statistical branch can separately impose a same-positive-direction rule; this is not equivalent to requiring every replicate ΔRm to exceed the mean-effect threshold.
+11. Multiple-testing correction is performed across Site Groups when BH is enabled.
+12. With a small number of biological replicates, statistical power and p-value resolution may be limited; significance should be interpreted together with effect size, replicate consistency, mapping ambiguity, and QC.
+13. Agent-generated summaries should reflect deterministic outputs rather than act as an independent statistical re-analysis.
 
 ---
 
 ## 🔗 Related Documentation
 
 - [Main Project README](../README.md)
-- [Branch 05 — G1](./Branch05_G1.md)
-- [Branch 07 — G3](./Branch07_G3.md)
-- [Branch 08 — G4](./Branch08_G4.md)
+- [Branch 05 �?G1](./Branch05_G1.md)
+- [Branch 07 �?G3](./Branch07_G3.md)
+- [Branch 08 �?G4](./Branch08_G4.md)
 
 ---
 
@@ -704,16 +987,45 @@ No AI agent or JSON-formatted user input is required for standalone execution.
 | Omics type | N-glycosite-level |
 | Technical replicates | No |
 | Biological replicates | Yes |
-| Protein reference required | Yes |
-| N-glycosite detection | +0.98 Da modified N + sequence validation |
-| Glycosylation motif | N-X-S/T, X ≠ P |
-| Protein/site normalization | Shared replicate-median correction factors |
+| Protein quantitative unit | PEAKS Protein Group |
+| Protein biological identity | UniProt accession(s) retained as annotations |
+| Peptide quantitative unit | Non-redundant PeptideEvidenceID |
+| Site quantitative/statistical unit | Site Group |
+| Site biological identity | One or more candidate `Accession:N-site` annotations |
+| N-glycosite detection | +0.98-Da-compatible modified N + sequence validation |
+| Glycosylation motif | $N-X-S/T$, $X \neq P$ |
+| Shared peptide policy | Count identical quantitative evidence once; retain all valid candidate assignments |
+| Within-PG site ambiguity | One Site Group with multiple candidate annotations |
+| Cross-PG site ambiguity | Retained for QC/annotation; excluded from canonical ΔRm |
+| Normalization population | Unique control Protein Groups after QC |
+| Normalization weighting | One weight per unique Protein Group |
+| PG/SG normalization | Shared PG-derived replicate-median correction factors |
 | CV basis | Raw Rm |
-| Site effect size | Mean ΔRm |
-| Default ΔRm cutoff | > 0.1 |
-| Distribution assessment | Replicate-level |
+| ΔRm definition | Normalized Site-Group Rm �?normalized matched Protein-Group Rm |
+| Site effect size | Mean ΔRm across biological replicates |
+| Default ΔRm cutoff | $>0.1$ |
+| Statistical hypothesis unit | SiteGroupID |
+| Distribution assessment | Replicate-level ΔRm |
 | Normal route | CV-guided robust analysis |
 | Non-normal route | Paired Wilcoxon / optional paired t-test |
-| BH correction | Optional |
+| BH correction | Optional; applied across Site Groups |
 | AI role | Interactive decision support + workflow routing + post-analysis reporting |
 | Local standalone execution | Supported |
+
+---
+
+## 📚 Methodological Interpretation
+
+The refined G2 workflow does not assume that every accession-expanded PEAKS row represents an additional independent quantitative measurement.
+
+Instead, it distinguishes:
+
+$$
+\text{quantitative evidence}
+\neq
+\text{candidate biological assignment}
+$$
+
+This design preserves potential protein and site information while preventing annotation multiplicity alone from increasing normalization weight, Site-Group intensity, or the number of statistical hypotheses.
+
+Methodological comparisons with accession-expanded implementations should therefore be treated as comparisons of analytical assumptions rather than ordinary bug-fix equivalence tests. In particular, changes can propagate through normalization factors, normalized Rm values, ΔRm distributions, BH correction, and final significant-site counts.
