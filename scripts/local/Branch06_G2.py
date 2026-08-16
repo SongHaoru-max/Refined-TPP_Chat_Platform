@@ -393,6 +393,16 @@ def ensure_numeric_columns(df, columns, label):
             raise ValueError(f"Non-numeric values detected in {label} column '{col}': {exc}") from exc
     return out
 
+def reporter_quantified_mask(df, columns):
+    """
+    Return a boolean dataframe indicating reporter intensities that are
+    actually quantified.
+
+    A reporter value is considered quantified only when it is observed
+    (not NaN) and non-zero.
+    """
+    values = df[columns]
+    return values.notna() & values.ne(0)
 
 def validate_group_quantitative_profiles(df, group_col, reporter_cols):
     """
@@ -844,13 +854,29 @@ print(f"Protein Groups after unique-peptide filtering: {len(df)}")
 print(f"Unique member UniProt accessions: {protein_member_map['uniprot_id'].nunique()}")
 
 # Quantified overview using Protein Group counts, not accession-row counts.
-quantified_any = (df[all_reporter_cols] != 0).any(axis=1)
-print(f"Protein Groups quantified in any reporter channel: {int(quantified_any.sum())}")
+quantified_any = reporter_quantified_mask(
+    df,
+    all_reporter_cols,
+).any(axis=1)
+
+print(
+    f"Protein Groups quantified in any reporter channel: "
+    f"{int(quantified_any.sum())}"
+)
 
 per_sample_sets = {}
+
 for sample in sample_names:
     cols = sample_block_cols[sample]
-    per_sample_sets[sample] = set(df.loc[(df[cols] != 0).any(axis=1), "protein_group_id"])
+
+    sample_quantified_any = reporter_quantified_mask(
+        df,
+        cols,
+    ).any(axis=1)
+
+    per_sample_sets[sample] = set(
+        df.loc[sample_quantified_any, "protein_group_id"]
+    )
 
 num_samples = len(sample_names)
 if num_samples > 1:
@@ -875,19 +901,46 @@ if num_samples > 1:
         plt.savefig(os.path.join(figures_dir, "01_protein_group_quantification_overlap_upset.tiff"), dpi=300)
         plt.close()
 
-strict_mask = pd.Series(True, index=df.index)
+strict_mask = pd.Series(True, index=df.index, dtype=bool)
+
 for sample in sample_names:
-    strict_mask &= (df[sample_block_cols[sample]] != 0).all(axis=1)
+    sample_complete = reporter_quantified_mask(
+        df,
+        sample_block_cols[sample],
+    ).all(axis=1)
+
+    strict_mask &= sample_complete
+
 df_strict = df.loc[strict_mask].copy()
 
 for sample in sample_names:
-    n_complete = int((df[sample_block_cols[sample]] != 0).all(axis=1).sum())
-    print(f"Sample {sample}: {n_complete} Protein Groups fully quantified in all six channels")
-print(f"Protein Groups fully quantified across all samples: {len(df_strict)}")
+    sample_complete = reporter_quantified_mask(
+        df,
+        sample_block_cols[sample],
+    ).all(axis=1)
 
-control_sample = next((s for s in sample_names if "control" in s.lower()), sample_names[0])
+    n_complete = int(sample_complete.sum())
+
+    print(
+        f"Sample {sample}: {n_complete} Protein Groups "
+        f"fully quantified in all six channels"
+    )
+
+control_sample = next(
+    (s for s in sample_names if "control" in s.lower()),
+    sample_names[0],
+)
+
 control_cols = sample_block_cols[control_sample]
-df_control_complete = df.loc[(df[control_cols] != 0).all(axis=1)].copy()
+
+control_complete_mask = reporter_quantified_mask(
+    df,
+    control_cols,
+).all(axis=1)
+
+df_control_complete = df.loc[
+    control_complete_mask
+].copy()
 df_control_complete.to_csv(
     os.path.join(tables_dir, "01_control_protein_groups_complete_quantification.csv"), index=False
 )
@@ -986,6 +1039,17 @@ if (pep_df["uniprot_id"] == "").any():
 
 if pep_group_col is not None:
     pep_df["protein_group_id"] = pep_df[pep_group_col].apply(canonical_group_id)
+
+    empty_group_mask = pep_df["protein_group_id"].eq("")
+
+    if empty_group_mask.any():
+        n_empty = int(empty_group_mask.sum())
+
+        raise ValueError(
+            f"Empty Protein Group identifiers detected in peptide CSV "
+            f"({n_empty} row(s)). Protein Group must be defined for every "
+            f"peptide row when the Protein Group column is present."
+        )
 else:
     accession_group_counts = protein_member_map.groupby("uniprot_id")["protein_group_id"].nunique()
     ambiguous_accessions = accession_group_counts[accession_group_counts > 1]
