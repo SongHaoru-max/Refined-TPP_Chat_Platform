@@ -76,6 +76,9 @@ PIPELINE_VERSION = "refined-3.0"
 DELTA_RM_THRESHOLD_DEFAULT = 0.10
 NORMALITY_ALPHA_DEFAULT = 0.05
 REQUIRED_TMT_CHANNELS = (126, 127, 128, 129, 130, 131)
+
+PROTEIN_GROUP_PROFILE_RTOL = 1e-8
+PROTEIN_GROUP_PROFILE_ATOL = 1e-12
 PROTEIN_GROUP_CANDIDATES = ("Protein Group", "ProteinGroup", "Protein_Group")
 ACCESSION_CANDIDATES = ("Accession", "Protein Accession")
 PEPTIDE_CANDIDATES = ("Peptide", "Peptide Sequence", "Sequence")
@@ -345,8 +348,23 @@ def rename_sample_channels(df, sample_order, sample_channel_map, sample_names):
     """Rename sample reporter columns and return both ordered lists and channel maps."""
     if len(sample_order) != len(sample_names):
         raise ValueError("Sample-order and sample-name lengths do not match.")
+
+    if any(not str(name).strip() for name in sample_names):
+        raise ValueError("Sample names cannot be empty.")
+
     if len(set(sample_names)) != len(sample_names):
         raise ValueError("Sample names must be unique.")
+
+    invalid_names = [
+        str(name)
+        for name in sample_names
+        if "/" in str(name) or "\\" in str(name)
+    ]
+    if invalid_names:
+        raise ValueError(
+            "Sample names must not contain path separators '/' or '\\': "
+            + ", ".join(invalid_names)
+        )
 
     rename_map = {}
     sample_block_cols = {}
@@ -378,23 +396,40 @@ def ensure_numeric_columns(df, columns, label):
 
 def validate_group_quantitative_profiles(df, group_col, reporter_cols):
     """
-    Verify that all accession rows within a PEAKS Protein Group share one reporter profile.
+    Verify that accession rows within each PEAKS Protein Group share the same
+    reporter profile within a defined numerical tolerance.
 
-    The refined workflow treats Protein Group as the protein-level quantitative unit.
+    The refined workflow treats Protein Group as the protein-level quantitative
+    unit, so member-accession rows must not represent meaningfully different
+    quantitative profiles.
     """
     inconsistent = []
+
     for group_id, group in df.groupby(group_col, dropna=False, sort=False):
-        profiles = group[reporter_cols].drop_duplicates()
-        if len(profiles) > 1:
+        profiles = group[reporter_cols].to_numpy(dtype=float)
+
+        if profiles.shape[0] <= 1:
+            continue
+
+        reference = profiles[0]
+
+        if not np.allclose(
+            profiles,
+            reference[None, :],
+            rtol=PROTEIN_GROUP_PROFILE_RTOL,
+            atol=PROTEIN_GROUP_PROFILE_ATOL,
+            equal_nan=True,
+        ):
             inconsistent.append(str(group_id))
             if len(inconsistent) >= 10:
                 break
+
     if inconsistent:
         raise ValueError(
             "Inconsistent reporter-ion profiles were found within PEAKS Protein Group(s): "
             + ", ".join(inconsistent)
             + ". Protein Group can only be used as one quantitative unit when member rows "
-              "share the same reporter profile."
+              "share the same reporter profile within the configured numerical tolerance."
         )
 
 
