@@ -10,23 +10,41 @@ this revision are:
 1. keep the original scientific workflow recognizable;
 2. make parameter semantics and statistical rules explicit;
 3. standardize output organization and naming;
-4. make later JSON / Agent integration straightforward without changing the
-   scientific core.
+4. make later JSON / Agent integration straightforward;
+5. standardize PEAKS Protein Group/shared-evidence semantics before statistical
+   analysis.
 
-Important definitions in this reference version
-------------------------------------------------
+Important definitions in this refined version
+-----------------------------------------------
+- Protein quantitative unit: one PEAKS Protein Group contributes one reporter
+  profile, one Rm profile, and one weight to replicate-median normalization.
+  Member accessions are retained for biological identity and FASTA/site mapping.
+- Shared peptide/site evidence: identical PEAKS quantitative evidence expanded
+  across member accessions is counted once quantitatively, while all valid
+  accession/site candidates are retained as annotations. Evidence mapping across
+  multiple Protein Groups is retained for QC but excluded from canonical DeltaRm
+  because the protein-group reference is not unique.
 - N-glycopeptide detection: an N residue is considered deamidated when one of
   its attached modification annotations contains a mass shift around +0.98 Da.
   Other modifications attached to the same N are allowed.
 - Rm normalization: replicate-specific multiplicative median normalization.
-  The three control-proteome Rm medians are aligned to a common reference
-  center. The same correction factors are applied to protein and glycosite Rm.
-- CV QC: CV is calculated from RAW Rm values, before normalization.
-- DeltaRm effect-size threshold: applied to MEAN DeltaRm across biological
-  replicates, not to every replicate separately.
-- BH correction: user-selectable. If disabled, raw p-values are used for
-  significance decisions.
-- Paired tests compare normalized protein Rm and normalized glycosite Rm.
+  Each unique control Protein Group contributes exactly once to M_i. The same
+  Protein-Group-derived correction factors are applied to Protein-Group and
+  Site-Group Rm.
+- Site Group: one site-level quantitative/statistical unit defined by one
+  Protein Group plus one candidate-site assignment set. A Site Group may have
+  one unique candidate site or multiple ambiguous-within-Protein-Group candidate
+  sites; candidate annotations do not multiply quantitative weight.
+- CV QC: CV is calculated from RAW Rm values, before normalization, separately
+  for Protein Groups and Site Groups.
+- DeltaRm: for Site Group s matched to Protein Group g(s), replicate i uses
+  DeltaRm_{s,i} = Rm^SG_{s,i,norm} - Rm^PG_{g(s),i,norm}. The effect-size
+  threshold is applied to mean_i(DeltaRm_{s,i}), not to every replicate
+  separately.
+- BH correction: user-selectable. If enabled, multiple-testing correction is
+  applied across Site Groups, not candidate accession:site annotation rows.
+- Paired tests compare normalized matched Protein-Group Rm and normalized
+  Site-Group Rm.
 """
 
 import os
@@ -43,16 +61,46 @@ from scipy.interpolate import make_interp_spline
 from statsmodels.stats.multitest import multipletests
 from collections import defaultdict
 from matplotlib_venn import venn2, venn3
-from upsetplot import from_contents, UpSet
+try:
+    from upsetplot import from_contents, UpSet
+except ImportError:
+    from_contents = None
+    UpSet = None
 import statsmodels.api as sm
 
 
 plt.rcParams.update({'figure.dpi':300})
 
 PIPELINE_NAME = "Branch06_G2"
-PIPELINE_VERSION = "reference-1.0"
+PIPELINE_VERSION = "refined-3.0"
 DELTA_RM_THRESHOLD_DEFAULT = 0.10
 NORMALITY_ALPHA_DEFAULT = 0.05
+REQUIRED_TMT_CHANNELS = (126, 127, 128, 129, 130, 131)
+PROTEIN_GROUP_CANDIDATES = ("Protein Group", "ProteinGroup", "Protein_Group")
+ACCESSION_CANDIDATES = ("Accession", "Protein Accession")
+PEPTIDE_CANDIDATES = ("Peptide", "Peptide Sequence", "Sequence")
+
+# Formal PG/SG notation recorded in run metadata and mirrored by exported column names.
+# PG = Protein Group quantitative unit; SG = Site Group quantitative/statistical unit.
+METHOD_FORMULAS = {
+    "protein_group_rm_rep1": "Rm^PG_{g,1} = I^PG_{g,129} / I^PG_{g,127}",
+    "protein_group_rm_rep2": "Rm^PG_{g,2} = I^PG_{g,130} / I^PG_{g,128}",
+    "protein_group_rm_rep3": "Rm^PG_{g,3} = I^PG_{g,131} / I^PG_{g,126}",
+    "normalization_median": "M_i = median_g(Rm^PG_{g,i}) over unique control Protein Groups",
+    "normalization_reference": "T = exp(median_i(log(M_i)))",
+    "normalization_factor": "CF_i = T / M_i",
+    "protein_group_rm_normalized": "Rm^PG_{g,i,norm} = Rm^PG_{g,i} * CF_i",
+    "site_group_intensity": "I^SG_{s,c} = sum_{e in E_s} I_{e,c}; each peptide_evidence_id contributes once",
+    "site_group_rm_rep1": "Rm^SG_{s,1} = I^SG_{s,129} / I^SG_{s,127}",
+    "site_group_rm_rep2": "Rm^SG_{s,2} = I^SG_{s,130} / I^SG_{s,128}",
+    "site_group_rm_rep3": "Rm^SG_{s,3} = I^SG_{s,131} / I^SG_{s,126}",
+    "site_group_rm_normalized": "Rm^SG_{s,i,norm} = Rm^SG_{s,i} * CF_i",
+    "protein_group_cv": "CV^PG_g = SD_i(Rm^PG_{g,i}) / mean_i(Rm^PG_{g,i}) using raw Rm",
+    "site_group_cv": "CV^SG_s = SD_i(Rm^SG_{s,i}) / mean_i(Rm^SG_{s,i}) using raw Rm",
+    "delta_rm_replicate": "DeltaRm_{s,i} = Rm^SG_{s,i,norm} - Rm^PG_{g(s),i,norm}",
+    "delta_rm_mean": "mean_DeltaRm_s = mean_i(DeltaRm_{s,i})",
+    "multiple_testing_unit": "one hypothesis per SiteGroupID",
+}
 
 
 def stage(message):
@@ -112,10 +160,10 @@ def compute_replicate_median_normalization(df, rm_cols):
     Compute multiplicative factors that align replicate-specific Rm medians.
 
     For replicate i:
-        M_i = median(Rm_i across control proteins)
+        M_i = median_g(Rm^PG_{g,i} across unique control Protein Groups)
         reference = exp(median(log(M_i)))
         CF_i = reference / M_i
-        Rm_i_normalized = Rm_i * CF_i
+        Rm^PG_{g,i,norm} = Rm^PG_{g,i} * CF_i
 
     With three positive replicate medians, the log-median reference is
     numerically the middle replicate median, but the log-space formulation makes
@@ -146,36 +194,36 @@ def adjust_pvalues(pvalues, apply_bh):
 
 
 PROTEIN_EXPORT_RENAME = {
-    "Rm1": "protein_rm_rep1_raw",
-    "Rm2": "protein_rm_rep2_raw",
-    "Rm3": "protein_rm_rep3_raw",
-    "Rm1_normalized": "protein_rm_rep1_norm",
-    "Rm2_normalized": "protein_rm_rep2_norm",
-    "Rm3_normalized": "protein_rm_rep3_norm",
-    "adjusted_Rm_unmod": "protein_rm_norm_mean",
-    "CV_Rm_filtered": "protein_rm_raw_cv",
-    "CV_Rm": "protein_rm_raw_cv",
+    "Rm1": "protein_group_rm_rep1_raw",
+    "Rm2": "protein_group_rm_rep2_raw",
+    "Rm3": "protein_group_rm_rep3_raw",
+    "Rm1_normalized": "protein_group_rm_rep1_norm",
+    "Rm2_normalized": "protein_group_rm_rep2_norm",
+    "Rm3_normalized": "protein_group_rm_rep3_norm",
+    "mean_Rm_pg_norm": "protein_group_rm_norm_mean",
+    "CV_Rm_filtered": "protein_group_rm_raw_cv",
+    "CV_Rm": "protein_group_rm_raw_cv",
 }
 
 SITE_EXPORT_RENAME = {
-    "Rm_glyco1": "glycosite_rm_rep1_raw",
-    "Rm_glyco2": "glycosite_rm_rep2_raw",
-    "Rm_glyco3": "glycosite_rm_rep3_raw",
-    "CV_Rm_glyco_complete": "glycosite_rm_raw_cv",
-    "CV_Rm_glyco_filtered": "glycosite_rm_raw_cv",
-    "Rm_glyco1_norm": "glycosite_rm_rep1_norm",
-    "Rm_glyco2_norm": "glycosite_rm_rep2_norm",
-    "Rm_glyco3_norm": "glycosite_rm_rep3_norm",
-    "adjusted_Rm_glyco": "glycosite_rm_norm_mean",
-    "adjusted_Rm_unmod": "protein_rm_norm_mean",
-    "Rm_unmod1_norm": "protein_rm_rep1_norm",
-    "Rm_unmod2_norm": "protein_rm_rep2_norm",
-    "Rm_unmod3_norm": "protein_rm_rep3_norm",
+    "Rm_sg1": "site_group_rm_rep1_raw",
+    "Rm_sg2": "site_group_rm_rep2_raw",
+    "Rm_sg3": "site_group_rm_rep3_raw",
+    "CV_Rm_sg_complete": "site_group_rm_raw_cv",
+    "CV_Rm_sg_filtered": "site_group_rm_raw_cv",
+    "Rm_sg1_norm": "site_group_rm_rep1_norm",
+    "Rm_sg2_norm": "site_group_rm_rep2_norm",
+    "Rm_sg3_norm": "site_group_rm_rep3_norm",
+    "mean_Rm_sg_norm": "site_group_rm_norm_mean",
+    "mean_Rm_pg_norm": "matched_protein_group_rm_norm_mean",
+    "Rm_pg1_norm_ref": "matched_protein_group_rm_rep1_norm",
+    "Rm_pg2_norm_ref": "matched_protein_group_rm_rep2_norm",
+    "Rm_pg3_norm_ref": "matched_protein_group_rm_rep3_norm",
     "ΔRm_rep1": "delta_rm_rep1",
     "ΔRm_rep2": "delta_rm_rep2",
     "ΔRm_rep3": "delta_rm_rep3",
     "ΔRm": "delta_rm_mean",
-    "Protein_CV": "protein_rm_raw_cv",
+    "Matched_PG_CV": "matched_protein_group_rm_raw_cv",
     "Rep_CV": "representative_raw_rm_cv",
 }
 
@@ -219,48 +267,194 @@ def canonical_protein_id(value):
     text = text.split()[0].strip()
     return text
 
-def detect_sample_blocks(df):
-    """Detect Sample columns grouped by Sample N"""
-    pattern = re.compile(r"Sample\s*(\d+)", flags=re.I)
-    sample_cols = defaultdict(list)
-    sample_order = []
-    for col in df.columns:
-        m = pattern.search(col)
-        if m:
-            idx = int(m.group(1))
-            sample_cols[idx].append(col)
-            if idx not in sample_order:
-                sample_order.append(idx)
-    sample_order.sort()
-    return sample_order, sample_cols
+def canonical_group_id(value):
+    """Normalize PEAKS Protein Group identifiers to stable strings."""
+    if pd.isna(value):
+        return ""
+    if isinstance(value, (int, np.integer)):
+        return str(int(value))
+    if isinstance(value, (float, np.floating)) and np.isfinite(value) and float(value).is_integer():
+        return str(int(value))
+    text = str(value).strip()
+    if re.fullmatch(r"\d+\.0", text):
+        text = text[:-2]
+    return text
 
-def extract_reporter_fragment(colname):
-    """Extract TMT reporter ion channel from column name"""
-    m = re.search(r"(126|127|128|129|130|131)", colname)
-    if m:
-        return f"TMT-{m.group(1)}"
-    return colname
+
+def resolve_column(df, candidates, label, required=True):
+    """Resolve one semantic column without mixing Protein Group and Accession roles."""
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+    if required:
+        raise KeyError(
+            f"Required {label} column not found. Expected one of: {list(candidates)}"
+        )
+    return None
+
+
+def reporter_channel_from_col(colname):
+    """Return reporter channel number 126..131 when uniquely encoded in a column name."""
+    matches = re.findall(r"(?<!\d)(126|127|128|129|130|131)(?!\d)", str(colname))
+    unique = sorted(set(int(x) for x in matches))
+    if len(unique) == 1:
+        return unique[0]
+    return None
+
+
+def detect_sample_channel_map(df):
+    """
+    Detect Sample N reporter columns and map them explicitly by reporter channel.
+
+    This deliberately does not infer channel identity from column position.
+    """
+    sample_pattern = re.compile(r"Sample\s*(\d+)", flags=re.I)
+    sample_map = defaultdict(dict)
+    for col in df.columns:
+        sample_match = sample_pattern.search(str(col))
+        channel = reporter_channel_from_col(col)
+        if not sample_match or channel is None:
+            continue
+        sample_idx = int(sample_match.group(1))
+        if channel in sample_map[sample_idx]:
+            raise ValueError(
+                f"Duplicate reporter channel {channel} detected for Sample {sample_idx}: "
+                f"'{sample_map[sample_idx][channel]}' and '{col}'"
+            )
+        sample_map[sample_idx][channel] = col
+
+    if not sample_map:
+        return [], {}
+
+    expected = set(REQUIRED_TMT_CHANNELS)
+    for sample_idx, channel_map in sample_map.items():
+        observed = set(channel_map)
+        missing = sorted(expected - observed)
+        extra = sorted(observed - expected)
+        if missing or extra:
+            raise ValueError(
+                f"Sample {sample_idx} reporter-channel mapping is incomplete. "
+                f"Missing={missing}, unexpected={extra}. "
+                "Expected exactly TMT 126, 127, 128, 129, 130, 131."
+            )
+
+    return sorted(sample_map), sample_map
+
+
+def rename_sample_channels(df, sample_order, sample_channel_map, sample_names):
+    """Rename sample reporter columns and return both ordered lists and channel maps."""
+    if len(sample_order) != len(sample_names):
+        raise ValueError("Sample-order and sample-name lengths do not match.")
+    if len(set(sample_names)) != len(sample_names):
+        raise ValueError("Sample names must be unique.")
+
+    rename_map = {}
+    sample_block_cols = {}
+    sample_channel_cols = {}
+    for sample_idx, sample_name in zip(sample_order, sample_names):
+        sample_block_cols[sample_name] = []
+        sample_channel_cols[sample_name] = {}
+        for channel in REQUIRED_TMT_CHANNELS:
+            old = sample_channel_map[sample_idx][channel]
+            new = f"{sample_name} TMT-{channel}"
+            rename_map[old] = new
+            sample_block_cols[sample_name].append(new)
+            sample_channel_cols[sample_name][channel] = new
+
+    df = df.rename(columns=rename_map).copy()
+    return df, sample_block_cols, sample_channel_cols, rename_map
+
+
+def ensure_numeric_columns(df, columns, label):
+    """Fail early when reporter-intensity columns contain non-numeric values."""
+    out = df.copy()
+    for col in columns:
+        try:
+            out[col] = pd.to_numeric(out[col], errors="raise")
+        except Exception as exc:
+            raise ValueError(f"Non-numeric values detected in {label} column '{col}': {exc}") from exc
+    return out
+
+
+def validate_group_quantitative_profiles(df, group_col, reporter_cols):
+    """
+    Verify that all accession rows within a PEAKS Protein Group share one reporter profile.
+
+    The refined workflow treats Protein Group as the protein-level quantitative unit.
+    """
+    inconsistent = []
+    for group_id, group in df.groupby(group_col, dropna=False, sort=False):
+        profiles = group[reporter_cols].drop_duplicates()
+        if len(profiles) > 1:
+            inconsistent.append(str(group_id))
+            if len(inconsistent) >= 10:
+                break
+    if inconsistent:
+        raise ValueError(
+            "Inconsistent reporter-ion profiles were found within PEAKS Protein Group(s): "
+            + ", ".join(inconsistent)
+            + ". Protein Group can only be used as one quantitative unit when member rows "
+              "share the same reporter profile."
+        )
+
+
+def find_all_occurrences(sequence, peptide):
+    """Return every start index where peptide occurs in sequence."""
+    starts = []
+    start = 0
+    while True:
+        idx = sequence.find(peptide, start)
+        if idx < 0:
+            break
+        starts.append(idx)
+        start = idx + 1
+    return starts
+
+
+def parse_site_label(label):
+    """Parse a canonical site label such as 'P36507:N123'."""
+    accession, site_text = str(label).rsplit(":N", 1)
+    return accession, int(site_text)
+
+
+def build_site_motif(prot_dict, site_label, half_len):
+    accession, site_pos = parse_site_label(site_label)
+    sequence = prot_dict.get(accession, "")
+    center = site_pos - 1
+    chars = []
+    for idx in range(center - half_len, center + half_len + 1):
+        chars.append(sequence[idx] if 0 <= idx < len(sequence) else "-")
+    return "".join(chars)
+
 
 def parse_peptide(peptide):
+    """
+    Strip modification annotations and return zero-based N positions carrying +0.98-like mass shifts.
+
+    Malformed unmatched parentheses raise a clear error instead of risking a non-advancing loop.
+    """
+    peptide = str(peptide)
     n_positions = []
-    bare_seq = ''
+    bare_seq = ""
     i = 0
     while i < len(peptide):
-        if peptide[i] == 'N':
+        if peptide[i] == "N":
             mods = []
             j = i + 1
-            while j < len(peptide) and peptide[j] == '(':
-                k = peptide.find(')', j)
+            while j < len(peptide) and peptide[j] == "(":
+                k = peptide.find(")", j)
                 if k == -1:
-                    break
-                mods.append(peptide[j+1:k])
+                    raise ValueError(f"Malformed peptide modification annotation: {peptide}")
+                mods.append(peptide[j + 1:k])
                 j = k + 1
             if contains_target_mass_shift(mods, target=0.98, tolerance=0.01):
                 n_positions.append(len(bare_seq))
-            bare_seq += 'N'
+            bare_seq += "N"
             i = j
-        elif peptide[i] == '(':
-            k = peptide.find(')', i)
+        elif peptide[i] == "(":
+            k = peptide.find(")", i)
+            if k == -1:
+                raise ValueError(f"Malformed peptide modification annotation: {peptide}")
             i = k + 1
         else:
             bare_seq += peptide[i]
@@ -328,22 +522,15 @@ def compute_bin_pvals(vals, side="right"):
 
 # 7) Function to compute bin indices given bin count
 def get_bins(n_sites, bin_count):
-    """Return list of index arrays for each bin. Last bin may merge if too small."""
-    bin_size = int(round(n_sites / bin_count))
-    bins = []
-    i = 0
-    while i < n_sites:
-        j = i + bin_size
-        if j >= n_sites:
-            if len(bins) > 0 and (n_sites - i) < bin_size:
-                bins[-1] = np.concatenate([bins[-1], np.arange(i, n_sites)])
-            else:
-                bins.append(np.arange(i, n_sites))
-            break
-        else:
-            bins.append(np.arange(i, j))
-        i = j
-    return bins
+    """Return non-empty index bins; safe when requested bin_count exceeds n_sites."""
+    n_sites = int(n_sites)
+    bin_count = int(bin_count)
+    if n_sites <= 0:
+        return []
+    if bin_count <= 0:
+        raise ValueError("bin_count must be positive")
+    effective_bins = min(bin_count, n_sites)
+    return [arr for arr in np.array_split(np.arange(n_sites), effective_bins) if len(arr) > 0]
 
 # 8) Function to compute p-value using percentile test (Non-parametric, single-tail, default: right)
 def percentile_pvals(vals, side="right"):
@@ -372,25 +559,25 @@ def percentile_pvals(vals, side="right"):
     return pvals
 
 
-def paired_one_tailed_pvalue(protein_vals, glycosite_vals, method="wilcoxon", side="right"):
-    """Compute a one-tailed paired p-value from normalized protein/glycosite Rm pairs."""
-    protein_vals = np.asarray(protein_vals, dtype=float)
-    glycosite_vals = np.asarray(glycosite_vals, dtype=float)
+def paired_one_tailed_pvalue(protein_group_vals, site_group_vals, method="wilcoxon", side="right"):
+    """Compute a one-tailed paired p-value from matched Protein-Group/Site-Group normalized Rm pairs."""
+    protein_group_vals = np.asarray(protein_group_vals, dtype=float)
+    site_group_vals = np.asarray(site_group_vals, dtype=float)
 
-    valid_mask = (~np.isnan(protein_vals)) & (~np.isnan(glycosite_vals))
-    protein_valid = protein_vals[valid_mask]
-    glycosite_valid = glycosite_vals[valid_mask]
+    valid_mask = (~np.isnan(protein_group_vals)) & (~np.isnan(site_group_vals))
+    protein_valid = protein_group_vals[valid_mask]
+    site_group_valid = site_group_vals[valid_mask]
     n_pairs = len(protein_valid)
 
     if n_pairs < 2:
         return 1.0, n_pairs
 
-    diffs = glycosite_valid - protein_valid
+    diffs = site_group_valid - protein_valid
     if np.allclose(diffs, 0):
         return 1.0, n_pairs
 
     if method == "paired_t":
-        t_stat, p_two = stats.ttest_rel(glycosite_valid, protein_valid, nan_policy="omit")
+        t_stat, p_two = stats.ttest_rel(site_group_valid, protein_valid, nan_policy="omit")
         if not np.isfinite(t_stat) or not np.isfinite(p_two):
             return 1.0, n_pairs
 
@@ -407,7 +594,7 @@ def paired_one_tailed_pvalue(protein_vals, glycosite_vals, method="wilcoxon", si
         alt = "greater" if side == "right" else "less"
         try:
             _, p_one = stats.wilcoxon(
-                glycosite_valid,
+                site_group_valid,
                 protein_valid,
                 alternative=alt,
                 zero_method="wilcox",
@@ -415,7 +602,7 @@ def paired_one_tailed_pvalue(protein_vals, glycosite_vals, method="wilcoxon", si
             )
         except TypeError:
             _, p_one = stats.wilcoxon(
-                glycosite_valid,
+                site_group_valid,
                 protein_valid,
                 alternative=alt,
                 zero_method="wilcox",
@@ -528,9 +715,8 @@ def pval_to_stars(p):
 # ------------------------------
 # 1. TMT Protein Quantification QC
 # ------------------------------
-stage("Stage 1/10 - Protein quantification QC")
-file = input("Please provide path of TMT quantification protein CSV file: ").strip()
-file = normalize_path(file)
+stage("Stage 1/10 - Protein Group quantification QC")
+file = normalize_path(input("Please provide path of TMT quantification protein CSV file: ").strip())
 if not os.path.exists(file):
     raise FileNotFoundError(file)
 
@@ -538,120 +724,160 @@ work_dir = os.path.dirname(file)
 os.chdir(work_dir)
 output_root, tables_dir, figures_dir, metadata_dir, intermediate_dir = build_output_dirs(work_dir)
 
-df = pd.read_csv(file)
-protein_col_candidates = ["Protein Group","ProteinGroup","Protein_Group","Accession"]
-protein_col = next((c for c in protein_col_candidates if c in df.columns), df.columns[0])
+df_raw = pd.read_csv(file)
+protein_group_col = resolve_column(df_raw, PROTEIN_GROUP_CANDIDATES, "Protein Group")
+accession_col = resolve_column(df_raw, ACCESSION_CANDIDATES, "protein Accession")
 
-sample_order, sample_cols_map = detect_sample_blocks(df)
+df_raw = df_raw.copy()
+df_raw["protein_group_id"] = df_raw[protein_group_col].apply(canonical_group_id)
+df_raw["uniprot_id"] = df_raw[accession_col].apply(canonical_protein_id)
+if (df_raw["protein_group_id"] == "").any():
+    raise ValueError("Empty Protein Group identifiers detected in protein CSV.")
+if (df_raw["uniprot_id"] == "").any():
+    raise ValueError("Empty/invalid Accession identifiers detected in protein CSV.")
+
+sample_order, protein_sample_channel_map = detect_sample_channel_map(df_raw)
 if not sample_order:
-    tmt_cols = [c for c in df.columns if re.search(r"(126|127|128|129|130|131)", c)]
-    num_samples = int(input("Enter number of biological samples: ").strip())
-    channels_per_sample = len(tmt_cols)//num_samples
-    sample_order = list(range(1,num_samples+1))
-    sample_cols_map = {s: tmt_cols[i*channels_per_sample:(i+1)*channels_per_sample] for i,s in enumerate(sample_order)}
+    raise ValueError(
+        "Could not detect PEAKS Sample N reporter columns in the protein CSV. "
+        "For deterministic G2 analysis, columns must explicitly encode Sample N and TMT 126-131; "
+        "positional fallback grouping has been removed."
+    )
 
-sample_names = [input(f"Please enter name for Sample {s} (use 'control' for control group): ").strip() for s in sample_order]
+sample_names = [
+    input(f"Please enter name for Sample {s} (use 'control' for control group): ").strip()
+    for s in sample_order
+]
+if any(not name for name in sample_names):
+    raise ValueError("Sample names cannot be empty.")
 
-# Rename columns
-col_map = {}
-sample_block_cols = {}
-for i, s in enumerate(sample_order):
-    sample_name = sample_names[i]
-    cols = sample_cols_map[s]
-    sample_block_cols[sample_name] = []
-    for old in cols:
-        repfrag = extract_reporter_fragment(old)
-        newname = f"{sample_name} {repfrag}"
-        col_map[old] = newname
-        sample_block_cols[sample_name].append(newname)
-df.rename(columns=col_map, inplace=True)
+df_raw, sample_block_cols, sample_channel_cols, protein_col_map = rename_sample_channels(
+    df_raw, sample_order, protein_sample_channel_map, sample_names
+)
 all_reporter_cols = [c for cols in sample_block_cols.values() for c in cols]
+df_raw = ensure_numeric_columns(df_raw, all_reporter_cols, "protein reporter intensity")
 
-# Quantified overview
+# Protein Group is the protein-level quantitative unit. Member accessions are retained
+# as biological/sequence annotations but do not independently weight normalization.
+validate_group_quantitative_profiles(df_raw, "protein_group_id", all_reporter_cols)
+protein_member_map = (
+    df_raw[["protein_group_id", "uniprot_id", accession_col]]
+    .drop_duplicates()
+    .rename(columns={accession_col: "accession_raw"})
+    .sort_values(["protein_group_id", "uniprot_id"])
+    .reset_index(drop=True)
+)
+protein_member_map.to_csv(
+    os.path.join(tables_dir, "00_protein_group_member_map.csv"), index=False
+)
+member_accessions = protein_member_map.groupby("protein_group_id")["uniprot_id"].apply(
+    lambda s: ";".join(sorted(set(str(x) for x in s if str(x))))
+)
+member_counts = protein_member_map.groupby("protein_group_id")["uniprot_id"].nunique()
+
+# Unique-peptide threshold is applied to PEAKS accession rows first; a Protein Group is
+# retained when at least one member row satisfies the threshold. Quantification is then
+# collapsed to one row per Protein Group.
+unique_col_candidates = ["#Unique", "#Unique Peptides", "Unique"]
+unique_col = next((c for c in unique_col_candidates if c in df_raw.columns), None)
+min_unique_peptides = None
+if unique_col:
+    df_raw[unique_col] = pd.to_numeric(df_raw[unique_col], errors="raise")
+    raw_min_unique = input(
+        "Minimum number of unique peptides required per PEAKS accession row "
+        "before Protein Group collapse (default=1; use 0 to disable): "
+    ).strip()
+    min_unique_peptides = 1 if raw_min_unique == "" else int(raw_min_unique)
+    if min_unique_peptides < 0:
+        raise ValueError("Minimum unique-peptide count cannot be negative.")
+    unique_pass = df_raw[unique_col] >= min_unique_peptides
+else:
+    unique_pass = pd.Series(True, index=df_raw.index)
+    print("No unique peptide column detected; unique-peptide filtering skipped.")
+
+eligible_rows = df_raw.loc[unique_pass].copy()
+if eligible_rows.empty:
+    raise ValueError("No protein rows remain after the unique-peptide filter.")
+
+df = eligible_rows.drop_duplicates(subset=["protein_group_id"], keep="first").copy()
+df["member_accessions"] = df["protein_group_id"].map(member_accessions)
+df["member_accession_count"] = df["protein_group_id"].map(member_counts).astype(int)
+
+print(f"Raw PEAKS protein rows: {len(df_raw)}")
+print(f"Unique PEAKS Protein Groups represented: {df_raw['protein_group_id'].nunique()}")
+print(f"Protein Groups after unique-peptide filtering: {len(df)}")
+print(f"Unique member UniProt accessions: {protein_member_map['uniprot_id'].nunique()}")
+
+# Quantified overview using Protein Group counts, not accession-row counts.
 quantified_any = (df[all_reporter_cols] != 0).any(axis=1)
-print(f"Total proteins quantified (any non-zero channel): {quantified_any.sum()}")
+print(f"Protein Groups quantified in any reporter channel: {int(quantified_any.sum())}")
 
 per_sample_sets = {}
 for sample in sample_names:
     cols = sample_block_cols[sample]
-    per_sample_sets[sample] = set(df.index[(df[cols] != 0).any(axis=1)])
+    per_sample_sets[sample] = set(df.loc[(df[cols] != 0).any(axis=1), "protein_group_id"])
 
-# Unique peptide filter
-unique_col_candidates = ["#Unique","#Unique Peptides","Unique"]
-unique_col = next((c for c in unique_col_candidates if c in df.columns), None)
-if unique_col:
-    choice = input("Do you want to filter proteins by unique peptides ≥2? (YES/NO, default=NO): ").strip().upper()
-    if choice=="YES":
-        unique_ge2 = (df[unique_col]>=2)
-    else:
-        unique_ge2 = (df[unique_col]>=1)
-else:
-    unique_ge2 = pd.Series(True, index=df.index)
-    print("No unique peptide column detected, skipping unique filter.")
-
-for sample in sample_names:
-    cols = sample_block_cols[sample]
-    per_sample_sets[sample] = set(
-        df.index[(df[cols] != 0).any(axis=1) & unique_ge2]
-    )
-
-# Venn / UpSet plot
 num_samples = len(sample_names)
-if num_samples>1:
-    if num_samples<=3:
-        plt.figure(figsize=(6,6))
-        if num_samples==2:
+if num_samples > 1:
+    if num_samples <= 3:
+        plt.figure(figsize=(6, 6))
+        if num_samples == 2:
             venn2([per_sample_sets[s] for s in sample_names], set_labels=sample_names)
         else:
             venn3([per_sample_sets[s] for s in sample_names], set_labels=sample_names)
-        plt.title("Quantified proteins (non-zero & unique filter)")
-        plt.savefig(os.path.join(figures_dir, "01_protein_quantification_overlap.tiff"), dpi=300)
+        plt.title("Quantified PEAKS Protein Groups")
+        plt.savefig(os.path.join(figures_dir, "01_protein_group_quantification_overlap.tiff"), dpi=300)
         plt.close()
     else:
+        if from_contents is None or UpSet is None:
+            raise ImportError(
+                "upsetplot is required when more than three samples are present. "
+                "Install it with: pip install upsetplot"
+            )
         upset_data = from_contents(per_sample_sets)
-        plt.figure(figsize=(8,6))
+        plt.figure(figsize=(8, 6))
         UpSet(upset_data, show_counts=True).plot()
-        plt.savefig(os.path.join(figures_dir, "01_protein_quantification_overlap_upset.tiff"), dpi=300)
+        plt.savefig(os.path.join(figures_dir, "01_protein_group_quantification_overlap_upset.tiff"), dpi=300)
         plt.close()
 
-# Strict filtering
-strict_mask = unique_ge2.copy()
+strict_mask = pd.Series(True, index=df.index)
 for sample in sample_names:
-    cols = sample_block_cols[sample]
-    strict_mask &= (df[cols]!=0).all(axis=1)
+    strict_mask &= (df[sample_block_cols[sample]] != 0).all(axis=1)
 df_strict = df.loc[strict_mask].copy()
 
 for sample in sample_names:
-    cols = sample_block_cols[sample]
-    n_complete = (df[cols]!=0).all(axis=1).sum()
-    print(f"Sample {sample}: {n_complete} proteins fully quantified in all channels")
-n_all_complete = df_strict.shape[0]
-print(f"Proteins fully quantified across all samples: {n_all_complete}")
+    n_complete = int((df[sample_block_cols[sample]] != 0).all(axis=1).sum())
+    print(f"Sample {sample}: {n_complete} Protein Groups fully quantified in all six channels")
+print(f"Protein Groups fully quantified across all samples: {len(df_strict)}")
 
-control_sample = next((s for s in sample_names if 'control' in s.lower()), sample_names[0])
+control_sample = next((s for s in sample_names if "control" in s.lower()), sample_names[0])
 control_cols = sample_block_cols[control_sample]
-df_control_complete = df.loc[(df[control_cols]!=0).all(axis=1) & unique_ge2]
-df_control_complete.to_csv(os.path.join(tables_dir, "01_control_proteins_complete_quantification.csv"), index=False)
-df_strict.to_csv(os.path.join(tables_dir, "02_all_samples_proteins_complete_quantification.csv"), index=False)
-
-print("TMT protein QC completed.")
+df_control_complete = df.loc[(df[control_cols] != 0).all(axis=1)].copy()
+df_control_complete.to_csv(
+    os.path.join(tables_dir, "01_control_protein_groups_complete_quantification.csv"), index=False
+)
+df_strict.to_csv(
+    os.path.join(tables_dir, "02_all_samples_protein_groups_complete_quantification.csv"), index=False
+)
+print("TMT Protein Group QC completed.")
 
 # ------------------------------
 # 2. Rm calculation & normalization of control group
 # ------------------------------
-stage("Stage 2/10 - Control-proteome Rm calculation and replicate-median normalization")
-ctrl_cols = sample_block_cols[control_sample]
-ch126, ch127, ch128, ch129, ch130, ch131 = ctrl_cols
-df_control_complete = df_control_complete.copy()
-
+stage("Stage 2/10 - Protein Group Rm calculation and replicate-median normalization")
+ctrl_channel_cols = sample_channel_cols[control_sample]
+ch126 = ctrl_channel_cols[126]
+ch127 = ctrl_channel_cols[127]
+ch128 = ctrl_channel_cols[128]
+ch129 = ctrl_channel_cols[129]
+ch130 = ctrl_channel_cols[130]
+ch131 = ctrl_channel_cols[131]
 
 df_control_complete["Rm1"] = df_control_complete[ch129] / df_control_complete[ch127]
 df_control_complete["Rm2"] = df_control_complete[ch130] / df_control_complete[ch128]
 df_control_complete["Rm3"] = df_control_complete[ch131] / df_control_complete[ch126]
 
-# Replicate-median multiplicative normalization.
-# Each biological replicate has its own control-proteome Rm median. All three
-# medians are aligned to a common reference center with a multiplicative factor.
+# Each unique PEAKS Protein Group contributes once to the replicate median.
 medians, rm_reference_median, CF = compute_replicate_median_normalization(
     df_control_complete, ["Rm1", "Rm2", "Rm3"]
 )
@@ -663,534 +889,543 @@ cf_df = pd.DataFrame({
     "Raw_Rm_Median": medians.values,
     "Reference_Rm_Median": [rm_reference_median] * 3,
     "Correction_Factor": CF.values,
+    "Protein_Quantitative_Unit": ["PEAKS Protein Group"] * 3,
 })
 cf_df.to_csv(os.path.join(tables_dir, "03_rm_normalization_factors.csv"), index=False)
-export_csv(df_control_complete, os.path.join(tables_dir, "04_control_proteins_with_rm.csv"), PROTEIN_EXPORT_RENAME)
-
-print("Rm normalization completed for control group.")
+export_csv(
+    df_control_complete,
+    os.path.join(tables_dir, "04_control_protein_groups_with_rm.csv"),
+    PROTEIN_EXPORT_RENAME,
+)
+print("Rm normalization completed using unique PEAKS Protein Groups.")
 
 # ------------------------------
 # 3. N-glycopeptide analysis
 # ------------------------------
-stage("Stage 3/10 - N-glycopeptide detection and protein-sequence mapping")
-peptide_csv_file = input("Enter path of TMT quantification peptide CSV file: ").strip()
-peptide_csv_file = normalize_path(peptide_csv_file)
-
-fasta_file = input("Enter path to UniProt fasta file: ").strip()
-fasta_file = normalize_path(fasta_file)
-
-work_dir = os.path.dirname(peptide_csv_file)
-os.chdir(work_dir)
+stage("Stage 3/10 - N-glycopeptide evidence collapse and sequence/site mapping")
+peptide_csv_file = normalize_path(input("Enter path of TMT quantification peptide CSV file: ").strip())
+fasta_file = normalize_path(input("Enter path to UniProt fasta file: ").strip())
+if not os.path.exists(peptide_csv_file):
+    raise FileNotFoundError(peptide_csv_file)
+if not os.path.exists(fasta_file):
+    raise FileNotFoundError(fasta_file)
 
 fasta_csv_file = os.path.join(intermediate_dir, "uniprot_fasta_parsed.csv")
-with open(fasta_file, 'r', encoding='utf-8') as f, open(fasta_csv_file, 'w', newline='', encoding='utf-8') as csvfile:
+with open(fasta_file, "r", encoding="utf-8") as f, open(fasta_csv_file, "w", newline="", encoding="utf-8") as csvfile:
     import csv
     writer = csv.writer(csvfile)
-    writer.writerow(['Accession', 'Protein Name', 'Sequence'])
-    accession = ''
-    protein_name = ''
+    writer.writerow(["Accession", "Protein Name", "Sequence"])
+    accession = ""
+    protein_name = ""
     seq_lines = []
     for line in f:
         line = line.strip()
-        if line.startswith('>'):
+        if line.startswith(">"):
             if accession:
-                writer.writerow([accession, protein_name, ''.join(seq_lines)])
+                writer.writerow([accession, protein_name, "".join(seq_lines)])
             header = line[1:].strip()
-            token = header.split()[0] if header else ''
-            accession = canonical_protein_id(token) if token else ''
-
-            parts = [p.strip() for p in token.split('|')] if '|' in token else []
+            token = header.split()[0] if header else ""
+            accession = canonical_protein_id(token) if token else ""
+            parts = [p.strip() for p in token.split("|")] if "|" in token else []
             if len(parts) >= 3:
-                third_tokens = parts[2].split(' ')
-                protein_name = ' '.join(third_tokens[1:]).strip() if len(third_tokens) > 1 else parts[2]
+                protein_name = parts[2]
             else:
                 tokens = header.split()
-                protein_name = ' '.join(tokens[1:]).strip() if len(tokens) > 1 else ''
+                protein_name = " ".join(tokens[1:]).strip() if len(tokens) > 1 else ""
             seq_lines = []
         else:
             seq_lines.append(line)
     if accession:
-        writer.writerow([accession, protein_name, ''.join(seq_lines)])
+        writer.writerow([accession, protein_name, "".join(seq_lines)])
 print(f"Fasta converted to CSV: {fasta_csv_file}")
 
 pep_df = pd.read_csv(peptide_csv_file)
 prot_df = pd.read_csv(fasta_csv_file)
-pep_df['UniProtID'] = pep_df['Accession'].apply(canonical_protein_id)
-prot_dict = dict(zip(prot_df['Accession'], prot_df['Sequence']))
+pep_accession_col = resolve_column(pep_df, ACCESSION_CANDIDATES, "peptide Accession")
+pep_peptide_col = resolve_column(pep_df, PEPTIDE_CANDIDATES, "peptide sequence")
+pep_group_col = resolve_column(pep_df, PROTEIN_GROUP_CANDIDATES, "peptide Protein Group", required=False)
+pep_df = pep_df.copy()
+pep_df["uniprot_id"] = pep_df[pep_accession_col].apply(canonical_protein_id)
+if (pep_df["uniprot_id"] == "").any():
+    raise ValueError("Empty/invalid Accession identifiers detected in peptide CSV.")
 
-intensity_cols = [c for c in pep_df.columns if re.search(r"Intensity Sample \d+ TMT6-\d+", c)]
-if not intensity_cols:
-    raise ValueError("No intensity columns detected!")
-sample_numbers = sorted(list(set(int(re.search(r"Sample (\d+)", c).group(1)) for c in intensity_cols)))
-sample_map = {}
-for sn in sample_numbers:
-    old_prefix = f"Sample {sn}"
-    new_name = input(f"Enter new name for {old_prefix}: ").strip()
-    sample_map[old_prefix] = new_name
-col_map = {}
-for c in intensity_cols:
-    sn_match = re.search(r"Sample (\d+)", c)
-    if sn_match:
-        sn = sn_match.group(1)
-        new_prefix = sample_map[f"Sample {sn}"]
-        col_map[c] = c.replace(f"Sample {sn}", new_prefix)
-pep_df.rename(columns=col_map, inplace=True)
-renamed_intensity_cols = list(col_map.values())
+if pep_group_col is not None:
+    pep_df["protein_group_id"] = pep_df[pep_group_col].apply(canonical_group_id)
+else:
+    accession_group_counts = protein_member_map.groupby("uniprot_id")["protein_group_id"].nunique()
+    ambiguous_accessions = accession_group_counts[accession_group_counts > 1]
+    if not ambiguous_accessions.empty:
+        raise ValueError(
+            "Peptide CSV has no Protein Group column and some accessions map to multiple Protein Groups; "
+            "cannot infer a unique protein-group reference."
+        )
+    accession_to_group = (
+        protein_member_map.drop_duplicates("uniprot_id").set_index("uniprot_id")["protein_group_id"].to_dict()
+    )
+    pep_df["protein_group_id"] = pep_df["uniprot_id"].map(accession_to_group)
+    if pep_df["protein_group_id"].isna().any():
+        missing = pep_df.loc[pep_df["protein_group_id"].isna(), "uniprot_id"].drop_duplicates().head(10).tolist()
+        raise ValueError(f"Unable to map peptide accessions to Protein Groups: {missing}")
 
-# Filter N-glycopeptides
+pep_sample_order, peptide_sample_channel_map = detect_sample_channel_map(pep_df)
+if not pep_sample_order:
+    raise ValueError(
+        "Could not detect Sample N / TMT126-131 reporter columns in peptide CSV. "
+        "Expected explicit PEAKS-style sample/channel names."
+    )
+peptide_sample_names = [
+    input(f"Enter new name for Sample {sn} in peptide table: ").strip()
+    for sn in pep_sample_order
+]
+if any(not name for name in peptide_sample_names):
+    raise ValueError("Peptide sample names cannot be empty.")
+pep_df, peptide_sample_block_cols, peptide_sample_channel_cols, peptide_col_map = rename_sample_channels(
+    pep_df, pep_sample_order, peptide_sample_channel_map, peptide_sample_names
+)
+renamed_intensity_cols = [c for cols in peptide_sample_block_cols.values() for c in cols]
+pep_df = ensure_numeric_columns(pep_df, renamed_intensity_cols, "peptide reporter intensity")
+prot_dict = dict(zip(prot_df["Accession"].astype(str), prot_df["Sequence"].astype(str)))
+
+# Collapse duplicated accession assignments when they represent the same PEAKS
+# quantitative evidence: same modified peptide and same complete reporter profile.
+# If that one evidence record is assigned across multiple Protein Groups, it is retained
+# for provenance/QC but excluded from canonical DeltaRm because the protein reference is not unique.
+peptide_evidence_rows = []
+evidence_counter = 1
+for modified_peptide, peptide_group in pep_df.groupby(pep_peptide_col, dropna=False, sort=False):
+    profile_groups = peptide_group.groupby(renamed_intensity_cols, dropna=False, sort=False)
+    for profile_values, profile_group in profile_groups:
+        if not isinstance(profile_values, tuple):
+            profile_values = (profile_values,)
+        assignment_pairs = sorted(set(
+            (canonical_group_id(pg), str(acc))
+            for pg, acc in zip(profile_group["protein_group_id"], profile_group["uniprot_id"])
+            if canonical_group_id(pg) and str(acc)
+        ))
+        candidate_groups = sorted(set(pg for pg, _ in assignment_pairs))
+        candidate_accessions = sorted(set(acc for _, acc in assignment_pairs))
+        evidence_row = {
+            "peptide_evidence_id": f"PE{evidence_counter:06d}",
+            "protein_group_id": candidate_groups[0] if len(candidate_groups) == 1 else "",
+            "candidate_protein_groups": ";".join(candidate_groups),
+            "candidate_protein_group_count": len(candidate_groups),
+            "modified_peptide": str(modified_peptide),
+            "candidate_accessions": ";".join(candidate_accessions),
+            "candidate_accession_count": len(candidate_accessions),
+            "candidate_group_accession_assignments": ";".join(
+                f"{pg}|{acc}" for pg, acc in assignment_pairs
+            ),
+        }
+        for col, value in zip(renamed_intensity_cols, profile_values):
+            evidence_row[col] = value
+        if "AScore" in profile_group.columns:
+            ascore_values = pd.to_numeric(profile_group["AScore"], errors="coerce")
+            evidence_row["AScore"] = float(ascore_values.max()) if ascore_values.notna().any() else np.nan
+        peptide_evidence_rows.append(evidence_row)
+        evidence_counter += 1
+
+peptide_evidence_df = pd.DataFrame(peptide_evidence_rows)
+if peptide_evidence_df.empty:
+    raise ValueError("No peptide quantitative evidence could be constructed from peptide CSV.")
+
 results = []
-for idx, row in pep_df.iterrows():
-    pep = row['Peptide']
-    uni_id = row['UniProtID']
-    prot_seq = prot_dict.get(uni_id)
-    if not prot_seq:
-        continue
-    stripped_seq, n_pos_list = parse_peptide(pep)
+for _, row in peptide_evidence_df.iterrows():
+    peptide = row["modified_peptide"]
+    stripped_seq, n_pos_list = parse_peptide(peptide)
     if not n_pos_list:
         continue
-    start_idx = prot_seq.find(stripped_seq)
-    if start_idx == -1:
+
+    candidate_site_assignments = set()
+    valid_accessions = set()
+    valid_groups = set()
+    assignment_tokens = [
+        x for x in str(row["candidate_group_accession_assignments"]).split(";") if x
+    ]
+    for token in assignment_tokens:
+        protein_group_id, uni_id = token.split("|", 1)
+        prot_seq = prot_dict.get(uni_id)
+        if not prot_seq:
+            continue
+        starts = find_all_occurrences(prot_seq, stripped_seq)
+        for start_idx in starts:
+            for n_pos in n_pos_list:
+                prot_n_pos = start_idx + n_pos
+                if prot_n_pos + 2 >= len(prot_seq):
+                    continue
+                x_residue = prot_seq[prot_n_pos + 1]
+                st_residue = prot_seq[prot_n_pos + 2]
+                if x_residue != "P" and st_residue in {"S", "T"}:
+                    candidate_site_assignments.add(
+                        f"{protein_group_id}|{uni_id}:N{prot_n_pos + 1}"
+                    )
+                    valid_accessions.add(uni_id)
+                    valid_groups.add(protein_group_id)
+
+    if not candidate_site_assignments:
         continue
-    kept_pep_positions = []
-    kept_prot_positions = []
-    for n_pos in n_pos_list:
-        prot_n_pos = start_idx + n_pos
-        if prot_n_pos + 2 < len(prot_seq):
-            X = prot_seq[prot_n_pos + 1]
-            ST = prot_seq[prot_n_pos + 2]
-            if X != 'P' and ST in ['S','T']:
-                kept_pep_positions.append(n_pos + 1)
-                kept_prot_positions.append(prot_n_pos + 1)
-    if not kept_prot_positions:
-        continue
+
+    site_assignment_sorted = sorted(candidate_site_assignments)
+    candidate_sites_sorted = sorted(set(x.split("|", 1)[1] for x in site_assignment_sorted))
+    valid_groups_sorted = sorted(valid_groups)
+    if len(valid_groups_sorted) > 1:
+        mapping_status = "ambiguous_across_protein_groups"
+        canonical_group = ""
+    elif len(candidate_sites_sorted) == 1:
+        mapping_status = "unique"
+        canonical_group = valid_groups_sorted[0]
+    else:
+        mapping_status = "ambiguous_within_protein_group"
+        canonical_group = valid_groups_sorted[0]
+
     out_row = {
-        'Protein Accession': uni_id,
-        'Peptide': pep,
-        'Stripped Sequence': stripped_seq,
-        'N-Glycosite in Peptide': ';'.join(map(str, kept_pep_positions)),
-        'N-Glycosite in Protein': ';'.join(map(str, kept_prot_positions))
+        "peptide_evidence_id": row["peptide_evidence_id"],
+        "protein_group_id": canonical_group,
+        "candidate_protein_groups": ";".join(valid_groups_sorted),
+        "candidate_protein_group_count": len(valid_groups_sorted),
+        "candidate_accessions": ";".join(sorted(valid_accessions)),
+        "candidate_accession_count": len(valid_accessions),
+        "candidate_sites": ";".join(candidate_sites_sorted),
+        "candidate_site_assignments": ";".join(site_assignment_sorted),
+        "candidate_site_count": len(candidate_sites_sorted),
+        "mapping_status": mapping_status,
+        "modified_peptide": peptide,
+        "stripped_sequence": stripped_seq,
+        "modified_n_positions_in_peptide": ";".join(str(x + 1) for x in n_pos_list),
     }
-    for c in renamed_intensity_cols:
-        out_row[c] = row[c]
-    if 'AScore' in pep_df.columns:
-        out_row['AScore'] = row['AScore']
+    for col in renamed_intensity_cols:
+        out_row[col] = row[col]
+    if "AScore" in peptide_evidence_df.columns:
+        out_row["AScore"] = row.get("AScore", np.nan)
     results.append(out_row)
 
-output_csv_file = os.path.join(tables_dir, "05_n_glycopeptides_with_intensity.csv")
-result_columns = [
-    'Protein Accession',
-    'Peptide',
-    'Stripped Sequence',
-    'N-Glycosite in Peptide',
-    'N-Glycosite in Protein',
-] + renamed_intensity_cols
-if 'AScore' in pep_df.columns:
-    result_columns.append('AScore')
-
-results_df = pd.DataFrame(results, columns=result_columns)
-results_df.to_csv(output_csv_file, index=False)
-print(f"Filtered N-glycopeptides saved: {output_csv_file}")
-
+results_df = pd.DataFrame(results)
 if results_df.empty:
     raise ValueError(
-        "No N-glycopeptides were retrieved after peptide-FASTA mapping. "
-        "Please check Accession format consistency between peptide CSV and FASTA, "
-        "and verify N(+0.98)-based motif parsing."
+        "No N-glycopeptide evidence remained after +0.98 parsing, FASTA mapping, and N-X-S/T validation."
     )
 
-# Intensity ratios plot
-glyco_intensity = results_df[renamed_intensity_cols].sum().values
-total_intensity = pep_df[renamed_intensity_cols].sum().values
-non_glyco_intensity = total_intensity - glyco_intensity
-ratios = glyco_intensity / total_intensity
+output_csv_file = os.path.join(tables_dir, "05_n_glycopeptide_evidence_with_intensity.csv")
+results_df.to_csv(output_csv_file, index=False)
+print(f"N-glycopeptide evidence table saved: {output_csv_file}")
+print(f"Raw peptide rows: {len(pep_df)}")
+print(f"Unique peptide quantitative evidence units: {len(peptide_evidence_df)}")
+print(f"Valid N-glycopeptide evidence units: {len(results_df)}")
+print(
+    "Ambiguous within-Protein-Group evidence units: "
+    f"{int((results_df['mapping_status'] == 'ambiguous_within_protein_group').sum())}"
+)
+print(
+    "Ambiguous across-Protein-Group evidence units (retained for QC, excluded from DeltaRm): "
+    f"{int((results_df['mapping_status'] == 'ambiguous_across_protein_groups').sum())}"
+)
 
-fig, ax = plt.subplots(figsize=(10,6))
-bar_width = 0.6
+# Intensity composition uses de-duplicated quantitative evidence, not accession-expanded rows.
+glyco_intensity = results_df[renamed_intensity_cols].sum().values
+total_intensity = peptide_evidence_df[renamed_intensity_cols].sum().values
+non_glyco_intensity = np.maximum(total_intensity - glyco_intensity, 0)
+ratios = np.divide(glyco_intensity, total_intensity, out=np.zeros_like(glyco_intensity, dtype=float), where=total_intensity != 0)
+fig, ax = plt.subplots(figsize=(10, 6))
 x = np.arange(len(renamed_intensity_cols))
-ax.bar(x, glyco_intensity, width=bar_width, color='#E63946', label='N-glycopeptides')
-ax.bar(x, non_glyco_intensity, bottom=glyco_intensity, width=bar_width, color='#457B9D', label='Other peptides')
+ax.bar(x, glyco_intensity, width=0.6, color="#E63946", label="N-glycopeptide evidence")
+ax.bar(x, non_glyco_intensity, bottom=glyco_intensity, width=0.6, color="#457B9D", label="Other peptide evidence")
 for i, ratio in enumerate(ratios):
-    ax.text(x[i], glyco_intensity[i]/2, f"{ratio:.2f}", ha='center', va='center', color='white', fontsize=10, fontweight='bold')
+    ax.text(x[i], glyco_intensity[i] / 2 if glyco_intensity[i] else 0, f"{ratio:.2f}", ha="center", va="center", color="white", fontsize=10, fontweight="bold")
 ax.set_xticks(x)
-ax.set_xticklabels(renamed_intensity_cols, rotation=45, ha='right')
-ax.set_ylabel('Total Intensity')
-ax.set_title('Intensity Composition of N-glycopeptides per TMT Channel')
+ax.set_xticklabels(renamed_intensity_cols, rotation=45, ha="right")
+ax.set_ylabel("Total Intensity")
+ax.set_title("Intensity Composition of N-glycopeptide Quantitative Evidence")
 ax.legend()
 plt.tight_layout()
-tiff_file = os.path.join(figures_dir, "02_n_glycopeptide_intensity_composition.tiff")
-fig.savefig(tiff_file, dpi=300, format='tiff')
+fig.savefig(os.path.join(figures_dir, "02_n_glycopeptide_intensity_composition.tiff"), dpi=300, format="tiff")
 plt.close(fig)
-print(f"Stacked bar chart saved: {tiff_file}")
 
 # ----------------------------
-# Protein N-glycosite distribution (all filtered N-glycopeptides)
+# 4. Site Groups
 # ----------------------------
-stage("Stage 4/10 - Site-centric aggregation and quantification completeness QC")
-prot_sites = results_df.groupby('Protein Accession')['N-Glycosite in Protein'].apply(
-    lambda x: set(';'.join(x).split(';'))
-)
-prot_site_counts = prot_sites.apply(len)
-total_sites = prot_site_counts.sum()
-
-print(f"Total N-glycopeptides: {len(results_df)}")
-print(f"Proteins with N-glycosites: {prot_site_counts.shape[0]}")
-print(f"Total N-glycosites: {total_sites}")
-
-# Cap counts >5
-prot_site_counts_capped = prot_site_counts.apply(lambda x: x if x <=5 else '>5')
-dist = prot_site_counts_capped.value_counts().sort_index(
-    key=lambda x: [int(i) if i != '>5' else 6 for i in x]
-)
-
-plt.figure(figsize=(8,6))
-bars = plt.barh(dist.index.astype(str), dist.values, color='skyblue')
-
-for bar in bars:
-    width = bar.get_width()
-    plt.text(width + max(dist.values)*0.01, bar.get_y() + bar.get_height()/2,
-             str(width), va='center')
-
-plt.xlabel("Protein count")
-plt.ylabel("Number of N-glycosites per protein")
-plt.title("Distribution of N-glyco site counts per protein (capped at >5)")
-plt.tight_layout()
-
-output_file = os.path.join(figures_dir, "03_protein_nglycosite_distribution_all.tiff")
-plt.savefig(output_file, dpi=300, format='tiff')
-plt.close()
-print(f"Protein N-glycosite distribution saved: {output_file}")
-
-
-# Motif and site-centric intensity
+stage("Stage 4/10 - Site Group aggregation and completeness QC")
 motif_len = int(input("Enter total motif window length (odd number, e.g., 7, 9, 11): ").strip())
-if motif_len % 2 == 0:
-    raise ValueError("Motif window length must be an odd number.")
+if motif_len <= 0 or motif_len % 2 == 0:
+    raise ValueError("Motif window length must be a positive odd number.")
 half_len = motif_len // 2
 
 site_results = []
-for prot, group in results_df.groupby('Protein Accession'):
-    prot_seq = prot_dict.get(prot, "")
-    prot_len = len(prot_seq)
-    all_sites = set(';'.join(group['N-Glycosite in Protein']).split(';'))
-    for n_site in all_sites:
-        if not n_site:
-            continue
-        n_site = int(n_site)
-        center = n_site - 1
-        start = center - half_len
-        end = center + half_len
-        motif_chars = []
-        for i in range(start, end + 1):
-            if 0 <= i < prot_len:
-                motif_chars.append(prot_seq[i])
-            else:
-                motif_chars.append('-')
-        motif = ''.join(motif_chars)
-        pep_mask = group['N-Glycosite in Protein'].apply(lambda x: str(n_site) in x.split(';'))
-        pep_subset = group[pep_mask]
-        site_row = {'Protein Accession': prot, 'N-Glycosite': n_site, 'Motif': motif}
-        for c in renamed_intensity_cols:
-            site_row[c] = pep_subset[c].sum()
-        site_results.append(site_row)
+site_counter = 1
+site_mappable_df = results_df[
+    results_df["mapping_status"] != "ambiguous_across_protein_groups"
+].copy()
+for (protein_group_id, candidate_sites), group in site_mappable_df.groupby(
+    ["protein_group_id", "candidate_sites"], dropna=False, sort=True
+):
+    site_labels = [x for x in str(candidate_sites).split(";") if x]
+    if not site_labels:
+        continue
+    candidate_accessions = sorted(set(parse_site_label(x)[0] for x in site_labels))
+    motif_annotations = [
+        f"{label}:{build_site_motif(prot_dict, label, half_len)}" for label in site_labels
+    ]
+    site_row = {
+        "site_group_id": f"SG{site_counter:06d}",
+        "protein_group_id": canonical_group_id(protein_group_id),
+        "candidate_sites": ";".join(site_labels),
+        "candidate_site_count": len(site_labels),
+        "candidate_accessions": ";".join(candidate_accessions),
+        "candidate_accession_count": len(candidate_accessions),
+        "mapping_status": "unique" if len(site_labels) == 1 else "ambiguous_within_protein_group",
+        "candidate_motifs": ";".join(motif_annotations),
+        "supporting_evidence_ids": ";".join(sorted(set(group["peptide_evidence_id"].astype(str)))),
+        "supporting_evidence_count": int(group["peptide_evidence_id"].nunique()),
+        "supporting_peptides": ";".join(sorted(set(group["modified_peptide"].astype(str)))),
+    }
+    for col in renamed_intensity_cols:
+        site_row[col] = group[col].sum()
+    site_results.append(site_row)
+    site_counter += 1
 
 site_df = pd.DataFrame(site_results)
-site_csv_file = os.path.join(tables_dir, "06_nglycosite_site_intensity.csv")
+if site_df.empty:
+    raise ValueError("No Site Groups were constructed.")
+site_csv_file = os.path.join(tables_dir, "06_nglycosite_site_groups.csv")
 site_df.to_csv(site_csv_file, index=False)
-print(f"Site-centric intensity table saved: {site_csv_file}")
+print(f"Site Group table saved: {site_csv_file}")
+print(f"Protein Groups with mapped N-glycosite evidence: {site_df['protein_group_id'].nunique()}")
+print(f"Site Groups: {len(site_df)}")
+print(f"Candidate site annotations represented: {int(site_df['candidate_site_count'].sum())}")
+print(f"Unique Site Groups: {int((site_df['mapping_status'] == 'unique').sum())}")
+print(f"Ambiguous within-group Site Groups: {int((site_df['mapping_status'] != 'unique').sum())}")
 
-# User input for the sample group
-chosen_group = input("Enter the sample group to calculate ΔRm (exact name, e.g., 'N-Glyco'): ").strip()
+# Distribution of Site Groups per Protein Group.
+pg_site_counts = site_df.groupby("protein_group_id")["site_group_id"].nunique()
+pg_site_counts_capped = pg_site_counts.apply(lambda x: x if x <= 5 else ">5")
+dist = pg_site_counts_capped.value_counts().sort_index(
+    key=lambda x: [int(i) if i != ">5" else 6 for i in x]
+)
+plt.figure(figsize=(8, 6))
+bars = plt.barh(dist.index.astype(str), dist.values, color="skyblue")
+for bar in bars:
+    width = bar.get_width()
+    plt.text(width + max(dist.values) * 0.01, bar.get_y() + bar.get_height() / 2, str(width), va="center")
+plt.xlabel("Protein Group count")
+plt.ylabel("Number of Site Groups per Protein Group")
+plt.title("Distribution of N-glycosite Site Groups per Protein Group")
+plt.tight_layout()
+plt.savefig(os.path.join(figures_dir, "03_protein_group_nglycosite_group_distribution_all.tiff"), dpi=300, format="tiff")
+plt.close()
 
-# Map TMT 6-126~131 columns for the selected group
-ch126_site = f"Intensity {chosen_group} TMT6-126"
-ch127_site = f"Intensity {chosen_group} TMT6-127"
-ch128_site = f"Intensity {chosen_group} TMT6-128"
-ch129_site = f"Intensity {chosen_group} TMT6-129"
-ch130_site = f"Intensity {chosen_group} TMT6-130"
-ch131_site = f"Intensity {chosen_group} TMT6-131"
-
+chosen_group = input("Enter the peptide sample group to calculate DeltaRm (exact renamed sample name, e.g., 'N-Glyco'): ").strip()
+if chosen_group not in peptide_sample_channel_cols:
+    raise ValueError(
+        f"Unknown peptide sample group '{chosen_group}'. Available groups: {list(peptide_sample_channel_cols)}"
+    )
+site_channel_map = peptide_sample_channel_cols[chosen_group]
+ch126_site = site_channel_map[126]
+ch127_site = site_channel_map[127]
+ch128_site = site_channel_map[128]
+ch129_site = site_channel_map[129]
+ch130_site = site_channel_map[130]
+ch131_site = site_channel_map[131]
 site_cols_for_calc = [ch126_site, ch127_site, ch128_site, ch129_site, ch130_site, ch131_site]
 
-# Check if all columns exist
-missing_cols = [c for c in site_cols_for_calc if c not in site_df.columns]
-if missing_cols:
-    raise ValueError(f"Columns not found for selected group '{chosen_group}': {missing_cols}")
-
-print(f"Selected sample group for ΔRm calculation: '{chosen_group}'")
-print("Columns mapped for calculation:", site_cols_for_calc)
-
-print("\n=== Filtering sites with complete quantification in selected-group 6 channels ===")
-site_df_clean = site_df.replace(0, np.nan)
+site_df_clean = site_df.copy()
+site_df_clean[site_cols_for_calc] = site_df_clean[site_cols_for_calc].replace(0, np.nan)
 complete_mask = site_df_clean[site_cols_for_calc].notna().all(axis=1)
-site_df_complete = site_df_clean[complete_mask].copy()
-num_sites = site_df_complete.shape[0]
-num_proteins = site_df_complete['Protein Accession'].nunique()
-print(f"Total quantified sites (complete in selected-group 6 channels): {num_sites}")
-print(f"Proteins containing these fully quantified sites: {num_proteins}")
-site_complete_csv = os.path.join(tables_dir, "07_nglycosites_complete_quantification.csv")
+site_df_complete = site_df_clean.loc[complete_mask].copy()
+print(f"Fully quantified Site Groups: {len(site_df_complete)}")
+print(f"Protein Groups containing fully quantified Site Groups: {site_df_complete['protein_group_id'].nunique()}")
+site_complete_csv = os.path.join(tables_dir, "07_nglycosite_site_groups_complete_quantification.csv")
 site_df_complete.to_csv(site_complete_csv, index=False)
-print(f"Filtered complete-quantification site table saved: {site_complete_csv}")
 
-prot_site_count = site_df_complete.groupby('Protein Accession')['N-Glycosite'].nunique()
-prot_site_counts_capped = prot_site_count.apply(lambda x: x if x <= 5 else '>5')
-dist = prot_site_counts_capped.value_counts().sort_index(key=lambda x: [int(i) if i != '>5' else 6 for i in x])
-
+pg_site_count_complete = site_df_complete.groupby("protein_group_id")["site_group_id"].nunique()
+pg_site_counts_capped = pg_site_count_complete.apply(lambda x: x if x <= 5 else ">5")
+dist = pg_site_counts_capped.value_counts().sort_index(key=lambda x: [int(i) if i != ">5" else 6 for i in x])
 plt.figure(figsize=(8, 6))
 bars = plt.barh(dist.index.astype(str), dist.values, color="#A8C9E0")
 for bar in bars:
     width = bar.get_width()
-    plt.text(width + max(dist.values) * 0.01,
-             bar.get_y() + bar.get_height() / 2,
-             str(width),
-             va='center')
-plt.xlabel("Protein count")
-plt.ylabel("Number of N-glycosites per protein")
-plt.title("Distribution of fully quantified N-glycosites per protein (capped at >5)")
+    plt.text(width + max(dist.values) * 0.01, bar.get_y() + bar.get_height() / 2, str(width), va="center")
+plt.xlabel("Protein Group count")
+plt.ylabel("Fully quantified Site Groups per Protein Group")
+plt.title("Distribution of fully quantified N-glycosite Site Groups per Protein Group")
 plt.tight_layout()
-out_plot = os.path.join(figures_dir, "04_protein_nglycosite_distribution_complete_quant.tiff")
-plt.savefig(out_plot, dpi=300, format='tiff')
+plt.savefig(os.path.join(figures_dir, "04_protein_group_nglycosite_group_distribution_complete.tiff"), dpi=300, format="tiff")
 plt.close()
-print(f"Protein N-glycosite distribution saved: {out_plot}")
-
-print("Site-level complete-quantification preprocessing completed.")
 
 # ----------------------------
-# Fully quantified N-glycosites with fully quantified proteins (in control group) filtering
-# ==============================
-stage("Stage 5/10 - Match fully quantified glycosites to fully quantified control proteins")
-df_control_complete['UniProtID'] = df_control_complete['Accession'].apply(canonical_protein_id)
-proteins_complete = set(df_control_complete['UniProtID'])
-site_df_filtered = site_df_complete[site_df_complete['Protein Accession'].isin(proteins_complete)].copy()
-df_control_filtered = df_control_complete[df_control_complete['UniProtID'].isin(site_df_filtered['Protein Accession'])].copy()
+# 5. Match Site Groups to fully quantified control Protein Groups
+# ----------------------------
+stage("Stage 5/10 - Match fully quantified Site Groups to fully quantified control Protein Groups")
+protein_groups_complete = set(df_control_complete["protein_group_id"].astype(str))
+site_df_filtered = site_df_complete[
+    site_df_complete["protein_group_id"].astype(str).isin(protein_groups_complete)
+].copy()
+matched_groups = set(site_df_filtered["protein_group_id"].astype(str))
+df_control_filtered = df_control_complete[
+    df_control_complete["protein_group_id"].astype(str).isin(matched_groups)
+].copy()
 
-# Venn Plot (Protein-level)
-plt.figure(figsize=(5,5))
-v = venn2([proteins_complete, set(site_df_complete['Protein Accession'])],
-          set_labels=['Fully quantified proteins in control group', 
-                      'Proteins with fully quantified N-Glycosites'],
-          set_colors=('#8AB7C2', '#9EAAD4'), alpha=0.5)
-
-# Adjust label font sizes
-for text in v.set_labels:
-    if text:
-        text.set_fontsize(6)
-for text in v.subset_labels:
-    if text:
-        text.set_fontsize(6)
-        text.set_fontweight('bold')
-
-plt.title('Protein-level quantification completeness overlap', fontsize=8)
+plt.figure(figsize=(5, 5))
+v = venn2(
+    [protein_groups_complete, set(site_df_complete["protein_group_id"].astype(str))],
+    set_labels=["Fully quantified control Protein Groups", "Protein Groups with fully quantified Site Groups"],
+    set_colors=("#8AB7C2", "#9EAAD4"),
+    alpha=0.5,
+)
+for text_obj in list(v.set_labels) + list(v.subset_labels):
+    if text_obj:
+        text_obj.set_fontsize(6)
+plt.title("Protein Group / Site Group quantification completeness overlap", fontsize=8)
 plt.tight_layout()
-plt.savefig(os.path.join(figures_dir, "05_protein_site_quantification_overlap_venn.tiff"), dpi=300, format='tiff')
+plt.savefig(os.path.join(figures_dir, "05_protein_group_site_quantification_overlap_venn.tiff"), dpi=300, format="tiff")
 plt.close()
 
-# Output intersection stats
-num_proteins = df_control_filtered.shape[0]
-num_sites = site_df_filtered.shape[0]
-print(f"Number of proteins with complete control and N-glycosite quantification: {num_proteins}")
-print(f"Number of N-glycosites with complete control and N-glycosite quantification: {num_sites}")
+print(f"Matched Protein Groups: {len(df_control_filtered)}")
+print(f"Matched Site Groups: {len(site_df_filtered)}")
+print(f"Candidate site annotations in matched units: {int(site_df_filtered['candidate_site_count'].sum())}")
 
-# ==============================
-# Step 4: Site distribution per protein
-# ==============================
-prot_site_count = site_df_filtered.groupby('Protein Accession')['N-Glycosite'].nunique()
-# Cap counts >5
-prot_site_counts_capped = prot_site_count.apply(lambda x: x if x <= 5 else '>5')
-dist = prot_site_counts_capped.value_counts().sort_index(key=lambda x: [int(i) if i != '>5' else 6 for i in x])
-
+pg_site_count_intersection = site_df_filtered.groupby("protein_group_id")["site_group_id"].nunique()
+pg_site_counts_capped = pg_site_count_intersection.apply(lambda x: x if x <= 5 else ">5")
+dist = pg_site_counts_capped.value_counts().sort_index(key=lambda x: [int(i) if i != ">5" else 6 for i in x])
 plt.figure(figsize=(8, 6))
 bars = plt.barh(dist.index.astype(str), dist.values, color="#14C0CC")
 for bar in bars:
     width = bar.get_width()
-    plt.text(width + max(dist.values) * 0.01,
-             bar.get_y() + bar.get_height() / 2,
-             str(width),
-             va='center')
-plt.xlabel("Protein count")
-plt.ylabel("Number of N-glycosites per protein")
-plt.title("Distribution of fully quantified N-glycosites per fully quantified protein (capped at >5)")
+    plt.text(width + max(dist.values) * 0.01, bar.get_y() + bar.get_height() / 2, str(width), va="center")
+plt.xlabel("Protein Group count")
+plt.ylabel("Matched Site Groups per Protein Group")
+plt.title("Distribution of matched N-glycosite Site Groups per Protein Group")
 plt.tight_layout()
-plt.savefig(os.path.join(figures_dir, "06_protein_nglycosite_distribution_intersection.tiff"), dpi=300, format='tiff')
+plt.savefig(os.path.join(figures_dir, "06_protein_group_nglycosite_group_distribution_intersection.tiff"), dpi=300, format="tiff")
 plt.close()
 
-# ==============================
-# Step 5: Calculate Rm, CV, and ΔRm for intersected proteins/sites
-# ==============================
+# ----------------------------
+# 6. Rm, CV, normalization and DeltaRm
+# ----------------------------
 stage("Stage 6/10 - Raw Rm CV QC, normalized Rm, and mean DeltaRm calculation")
-print(site_df_filtered.columns)
-print(df_control_filtered.columns)
-
-# ---------------- Complete sites ----------------
 site_df_complete = site_df_complete.copy()
-# Calculate raw Rm for each site
-site_df_complete['Rm_glyco1'] = site_df_complete[ch129_site] / site_df_complete[ch127_site]
-site_df_complete['Rm_glyco2'] = site_df_complete[ch130_site] / site_df_complete[ch128_site]
-site_df_complete['Rm_glyco3'] = site_df_complete[ch131_site] / site_df_complete[ch126_site]
-# Calculate CV for Rm
-site_df_complete['CV_Rm_glyco_complete'] = coefficient_of_variation_from_raw_rm(
-    site_df_complete, ['Rm_glyco1', 'Rm_glyco2', 'Rm_glyco3']
+site_df_complete["Rm_sg1"] = site_df_complete[ch129_site] / site_df_complete[ch127_site]
+site_df_complete["Rm_sg2"] = site_df_complete[ch130_site] / site_df_complete[ch128_site]
+site_df_complete["Rm_sg3"] = site_df_complete[ch131_site] / site_df_complete[ch126_site]
+site_df_complete["CV_Rm_sg_complete"] = coefficient_of_variation_from_raw_rm(
+    site_df_complete, ["Rm_sg1", "Rm_sg2", "Rm_sg3"]
 )
-
-# Save complete site-level table with Rm and CV
-complete_outfile = os.path.join(tables_dir, f"08_nglycosites_rm_raw_cv_{chosen_group}_complete.csv")
+complete_outfile = os.path.join(tables_dir, f"08_nglycosite_site_groups_rm_raw_cv_{chosen_group}_complete.csv")
 export_csv(site_df_complete, complete_outfile, SITE_EXPORT_RENAME)
-print(f"Complete site table with Rm and CV saved: {complete_outfile}")
 
-# ---------------- Filtered sites ----------------
 site_df_filtered = site_df_filtered.copy()
-# Calculate raw Rm for each site
-site_df_filtered['Rm_glyco1'] = site_df_filtered[ch129_site] / site_df_filtered[ch127_site]
-site_df_filtered['Rm_glyco2'] = site_df_filtered[ch130_site] / site_df_filtered[ch128_site]
-site_df_filtered['Rm_glyco3'] = site_df_filtered[ch131_site] / site_df_filtered[ch126_site]
-# Calculate CV for Rm
-site_df_filtered['CV_Rm_glyco_filtered'] = coefficient_of_variation_from_raw_rm(
-    site_df_filtered, ['Rm_glyco1', 'Rm_glyco2', 'Rm_glyco3']
+site_df_filtered["Rm_sg1"] = site_df_filtered[ch129_site] / site_df_filtered[ch127_site]
+site_df_filtered["Rm_sg2"] = site_df_filtered[ch130_site] / site_df_filtered[ch128_site]
+site_df_filtered["Rm_sg3"] = site_df_filtered[ch131_site] / site_df_filtered[ch126_site]
+site_df_filtered["CV_Rm_sg_filtered"] = coefficient_of_variation_from_raw_rm(
+    site_df_filtered, ["Rm_sg1", "Rm_sg2", "Rm_sg3"]
 )
+site_df_filtered["Rm_sg1_norm"] = site_df_filtered["Rm_sg1"] * CF["Rm1"]
+site_df_filtered["Rm_sg2_norm"] = site_df_filtered["Rm_sg2"] * CF["Rm2"]
+site_df_filtered["Rm_sg3_norm"] = site_df_filtered["Rm_sg3"] * CF["Rm3"]
 
-# Apply control CF correction
-site_df_filtered['Rm_glyco1_norm'] = site_df_filtered['Rm_glyco1'] * CF['Rm1']
-site_df_filtered['Rm_glyco2_norm'] = site_df_filtered['Rm_glyco2'] * CF['Rm2']
-site_df_filtered['Rm_glyco3_norm'] = site_df_filtered['Rm_glyco3'] * CF['Rm3']
-
-# Protein-level adjusted_Rm_unmod (arithmetic mean of normalized protein Rm) and CV of raw Rm
-# Filtered proteins
+# Protein Group Rm/CV summary.
 df_control_filtered = df_control_filtered.copy()
-# Arithmetic mean of normalized Rm
-df_control_filtered['adjusted_Rm_unmod'] = df_control_filtered[['Rm1_normalized','Rm2_normalized','Rm3_normalized']].mean(axis=1)
-# CV of raw Rm (Rm1~3)
-df_control_filtered['CV_Rm_filtered'] = coefficient_of_variation_from_raw_rm(
-    df_control_filtered, ['Rm1', 'Rm2', 'Rm3']
+df_control_filtered["mean_Rm_pg_norm"] = df_control_filtered[
+    ["Rm1_normalized", "Rm2_normalized", "Rm3_normalized"]
+].mean(axis=1)
+df_control_filtered["CV_Rm_filtered"] = coefficient_of_variation_from_raw_rm(
+    df_control_filtered, ["Rm1", "Rm2", "Rm3"]
 )
-
-# Complete proteins
 df_control_complete = df_control_complete.copy()
-df_control_complete['CV_Rm'] = coefficient_of_variation_from_raw_rm(
-    df_control_complete, ['Rm1', 'Rm2', 'Rm3']
+df_control_complete["CV_Rm"] = coefficient_of_variation_from_raw_rm(
+    df_control_complete, ["Rm1", "Rm2", "Rm3"]
 )
 
-# Save filtered protein-level CSV
-new_protein_cols = ['Rm1','Rm2','Rm3','Rm1_normalized','Rm2_normalized','Rm3_normalized','adjusted_Rm_unmod','CV_Rm_filtered']
+new_protein_cols = ["Rm1", "Rm2", "Rm3", "Rm1_normalized", "Rm2_normalized", "Rm3_normalized", "mean_Rm_pg_norm", "CV_Rm_filtered"]
 original_protein_cols = [c for c in df_control_filtered.columns if c not in new_protein_cols]
-protein_cols_to_save_filtered = original_protein_cols + new_protein_cols
-
-protein_outfile_filtered = os.path.join(tables_dir, "09_control_proteins_rm_summary_site_matched.csv")
-export_csv(df_control_filtered, protein_outfile_filtered, PROTEIN_EXPORT_RENAME, columns=protein_cols_to_save_filtered)
-print(f"Filtered protein-level summary saved: {protein_outfile_filtered}")
-
-# Save complete protein-level CSV
-new_protein_cols_complete = ['Rm1','Rm2','Rm3','CV_Rm']
+export_csv(
+    df_control_filtered,
+    os.path.join(tables_dir, "09_control_protein_groups_rm_summary_site_matched.csv"),
+    PROTEIN_EXPORT_RENAME,
+    columns=original_protein_cols + new_protein_cols,
+)
+new_protein_cols_complete = ["Rm1", "Rm2", "Rm3", "CV_Rm"]
 original_protein_cols_complete = [c for c in df_control_complete.columns if c not in new_protein_cols_complete]
-protein_cols_to_save_complete = original_protein_cols_complete + new_protein_cols_complete
+export_csv(
+    df_control_complete,
+    os.path.join(tables_dir, "10_control_protein_groups_rm_summary_complete.csv"),
+    PROTEIN_EXPORT_RENAME,
+    columns=original_protein_cols_complete + new_protein_cols_complete,
+)
 
-protein_outfile_complete = os.path.join(tables_dir, "10_control_proteins_rm_summary_complete.csv")
-export_csv(df_control_complete, protein_outfile_complete, PROTEIN_EXPORT_RENAME, columns=protein_cols_to_save_complete)
-print(f"Complete protein-level summary saved: {protein_outfile_complete}")
+# Site Groups use their matched Protein Group as the protein reference.
+site_df_filtered["mean_Rm_sg_norm"] = site_df_filtered[
+    ["Rm_sg1_norm", "Rm_sg2_norm", "Rm_sg3_norm"]
+].mean(axis=1)
+pg_indexed = df_control_filtered.set_index("protein_group_id")
+site_df_filtered["mean_Rm_pg_norm"] = site_df_filtered["protein_group_id"].map(pg_indexed["mean_Rm_pg_norm"])
+site_df_filtered["Rm_pg1_norm_ref"] = site_df_filtered["protein_group_id"].map(pg_indexed["Rm1_normalized"])
+site_df_filtered["Rm_pg2_norm_ref"] = site_df_filtered["protein_group_id"].map(pg_indexed["Rm2_normalized"])
+site_df_filtered["Rm_pg3_norm_ref"] = site_df_filtered["protein_group_id"].map(pg_indexed["Rm3_normalized"])
+site_df_filtered["ΔRm_rep1"] = site_df_filtered["Rm_sg1_norm"] - site_df_filtered["Rm_pg1_norm_ref"]
+site_df_filtered["ΔRm_rep2"] = site_df_filtered["Rm_sg2_norm"] - site_df_filtered["Rm_pg2_norm_ref"]
+site_df_filtered["ΔRm_rep3"] = site_df_filtered["Rm_sg3_norm"] - site_df_filtered["Rm_pg3_norm_ref"]
+site_df_filtered["ΔRm"] = site_df_filtered[["ΔRm_rep1", "ΔRm_rep2", "ΔRm_rep3"]].mean(axis=1)
 
-
-# ---------------- Site-level ΔRm ----------------
-# Arithmetic mean of normalized glycosite Rm
-site_df_filtered['adjusted_Rm_glyco'] = site_df_filtered[['Rm_glyco1_norm','Rm_glyco2_norm','Rm_glyco3_norm']].mean(axis=1)
-# Map protein-level adjusted Rm_unmod
-prot_rm_map = df_control_filtered.set_index('UniProtID')['adjusted_Rm_unmod'].to_dict()
-site_df_filtered['adjusted_Rm_unmod'] = site_df_filtered['Protein Accession'].map(prot_rm_map)
-# Map protein-level normalized replicate Rm for paired non-parametric testing
-prot_rm1_map = df_control_filtered.set_index('UniProtID')['Rm1_normalized'].to_dict()
-prot_rm2_map = df_control_filtered.set_index('UniProtID')['Rm2_normalized'].to_dict()
-prot_rm3_map = df_control_filtered.set_index('UniProtID')['Rm3_normalized'].to_dict()
-site_df_filtered['Rm_unmod1_norm'] = site_df_filtered['Protein Accession'].map(prot_rm1_map)
-site_df_filtered['Rm_unmod2_norm'] = site_df_filtered['Protein Accession'].map(prot_rm2_map)
-site_df_filtered['Rm_unmod3_norm'] = site_df_filtered['Protein Accession'].map(prot_rm3_map)
-# Calculate ΔRm for each biological replicate and their mean
-site_df_filtered['ΔRm_rep1'] = site_df_filtered['Rm_glyco1_norm'] - site_df_filtered['Rm_unmod1_norm']
-site_df_filtered['ΔRm_rep2'] = site_df_filtered['Rm_glyco2_norm'] - site_df_filtered['Rm_unmod2_norm']
-site_df_filtered['ΔRm_rep3'] = site_df_filtered['Rm_glyco3_norm'] - site_df_filtered['Rm_unmod3_norm']
-site_df_filtered['ΔRm'] = site_df_filtered[['ΔRm_rep1', 'ΔRm_rep2', 'ΔRm_rep3']].mean(axis=1)
-# IMPORTANT: the effect-size threshold is applied to this mean ΔRm later.
-# Individual replicate ΔRm values are NOT required to exceed 0.1.
-
-# Save site-level CSV
-new_site_cols = ['Rm_glyco1','Rm_glyco2','Rm_glyco3','CV_Rm_glyco_filtered',
-                 'Rm_glyco1_norm','Rm_glyco2_norm','Rm_glyco3_norm',
-                 'adjusted_Rm_glyco','adjusted_Rm_unmod',
-                 'Rm_unmod1_norm','Rm_unmod2_norm','Rm_unmod3_norm',
-                 'ΔRm_rep1','ΔRm_rep2','ΔRm_rep3','ΔRm']
-original_site_cols = [c for c in site_df_filtered.columns if c not in new_site_cols]
-site_cols_to_save = original_site_cols + new_site_cols
-
-site_outfile = os.path.join(tables_dir, "11_nglycosites_delta_rm.csv")
-export_csv(site_df_filtered, site_outfile, SITE_EXPORT_RENAME, columns=site_cols_to_save)
-print(f"Site-level ΔRm table saved: {site_outfile}")
-
-# ------------------------------
-# Step 6: CV QC plots for complete and filtered N-glycosites (TIFF)
-# ------------------------------
-cv_plot_params = [
-    ("All fully quantified sites", site_df_complete['CV_Rm_glyco_complete'], f"CV_distribution_complete_sites_{chosen_group}.tiff"),
-    ("Fully quantified sites of fully quantified proteins", site_df_filtered['CV_Rm_glyco_filtered'], f"CV_distribution_filtered_sites_{chosen_group}.tiff")
+new_site_cols = [
+    "Rm_sg1", "Rm_sg2", "Rm_sg3", "CV_Rm_sg_filtered",
+    "Rm_sg1_norm", "Rm_sg2_norm", "Rm_sg3_norm",
+    "mean_Rm_sg_norm", "mean_Rm_pg_norm",
+    "Rm_pg1_norm_ref", "Rm_pg2_norm_ref", "Rm_pg3_norm_ref",
+    "ΔRm_rep1", "ΔRm_rep2", "ΔRm_rep3", "ΔRm",
 ]
+original_site_cols = [c for c in site_df_filtered.columns if c not in new_site_cols]
+site_outfile = os.path.join(tables_dir, "11_nglycosite_site_groups_delta_rm.csv")
+export_csv(site_df_filtered, site_outfile, SITE_EXPORT_RENAME, columns=original_site_cols + new_site_cols)
+print(f"Site Group DeltaRm table saved: {site_outfile}")
 
+# CV QC plots.
+cv_plot_params = [
+    ("All fully quantified Site Groups", site_df_complete["CV_Rm_sg_complete"], f"CV_distribution_complete_site_groups_{chosen_group}.tiff"),
+    ("Matched fully quantified Site Groups", site_df_filtered["CV_Rm_sg_filtered"], f"CV_distribution_matched_site_groups_{chosen_group}.tiff"),
+]
 for label, cv_series_raw, fname in cv_plot_params:
-    # Remove NaN and sort descending
     cv_series = cv_series_raw.dropna().sort_values(ascending=False).reset_index(drop=True)
+    if cv_series.empty:
+        continue
     rank = cv_series.index + 1
-
-    plt.figure(figsize=(6,4))
+    plt.figure(figsize=(6, 4))
     plt.scatter(rank, cv_series.values, color="#5E556A", alpha=0.7, s=20)
-
-    # Proportion of sites with CV <= 0.3 and <= 0.4
-    prop_30 = (cv_series <= 0.3).sum() / len(cv_series) * 100
-    prop_40 = (cv_series <= 0.4).sum() / len(cv_series) * 100
-
-    plt.text(0.7*len(cv_series), 0.305, f"≤30%: {prop_30:.1f}%", fontsize=10)
-    plt.text(0.7*len(cv_series), 0.405, f"≤40%: {prop_40:.1f}%", fontsize=10)
-
-    plt.xlabel("Sites sorted by CV (high→low)")
+    prop_30 = (cv_series <= 0.3).mean() * 100
+    prop_40 = (cv_series <= 0.4).mean() * 100
+    plt.text(0.7 * len(cv_series), 0.305, f"≤30%: {prop_30:.1f}%", fontsize=10)
+    plt.text(0.7 * len(cv_series), 0.405, f"≤40%: {prop_40:.1f}%", fontsize=10)
+    plt.xlabel("Site Groups sorted by CV (high→low)")
     plt.ylabel("CV")
     plt.title(f"CV distribution - {chosen_group} ({label})", fontsize=8)
     plt.tight_layout()
-
-    cv_fig_file = os.path.join(figures_dir, fname)
-    plt.savefig(cv_fig_file, dpi=300)
+    plt.savefig(os.path.join(figures_dir, fname), dpi=300)
     plt.close()
-    print(f"{label} CV distribution TIFF plot saved: {cv_fig_file}")
-    
-# ------------------------------
-# Step 7: CV QC plots for proteins (complete and filtered) (TIFF)
-# ------------------------------
+
 protein_cv_plot_params = [
-    ("All fully quantified proteins", df_control_complete['CV_Rm'], "CV_distribution_complete_proteins.tiff"),
-    ("Fully quantified proteins with fully quantified N-glycosites", df_control_filtered['CV_Rm_filtered'], "CV_distribution_filtered_proteins.tiff")
+    ("All fully quantified Protein Groups", df_control_complete["CV_Rm"], "CV_distribution_complete_protein_groups.tiff"),
+    ("Protein Groups with matched Site Groups", df_control_filtered["CV_Rm_filtered"], "CV_distribution_matched_protein_groups.tiff"),
 ]
-
 for label, cv_series_raw, fname in protein_cv_plot_params:
-    # Remove NaN and sort descending
     cv_series = cv_series_raw.dropna().sort_values(ascending=False).reset_index(drop=True)
+    if cv_series.empty:
+        continue
     rank = cv_series.index + 1
-
-    plt.figure(figsize=(6,4))
+    plt.figure(figsize=(6, 4))
     plt.scatter(rank, cv_series.values, color="#2A9D8F", alpha=0.7, s=20)
-
-    # Proportion of proteins with CV <= 0.3 and <= 0.4
-    prop_30 = (cv_series <= 0.3).sum() / len(cv_series) * 100
-    prop_40 = (cv_series <= 0.4).sum() / len(cv_series) * 100
-
-    plt.text(0.7*len(cv_series), 0.305, f"≤30%: {prop_30:.1f}%", fontsize=10)
-    plt.text(0.7*len(cv_series), 0.405, f"≤40%: {prop_40:.1f}%", fontsize=10)
-
-    plt.xlabel("Proteins sorted by CV (high→low)")
+    prop_30 = (cv_series <= 0.3).mean() * 100
+    prop_40 = (cv_series <= 0.4).mean() * 100
+    plt.text(0.7 * len(cv_series), 0.305, f"≤30%: {prop_30:.1f}%", fontsize=10)
+    plt.text(0.7 * len(cv_series), 0.405, f"≤40%: {prop_40:.1f}%", fontsize=10)
+    plt.xlabel("Protein Groups sorted by CV (high→low)")
     plt.ylabel("CV")
-    plt.title(f"CV distribution - Control Proteins ({label})", fontsize=8)
+    plt.title(f"CV distribution - Control Protein Groups ({label})", fontsize=8)
     plt.tight_layout()
-
-    cv_fig_file = os.path.join(figures_dir, fname)
-    plt.savefig(cv_fig_file, dpi=300)
+    plt.savefig(os.path.join(figures_dir, fname), dpi=300)
     plt.close()
-    print(f"{label} CV distribution TIFF plot saved: {cv_fig_file}")
 
 # ------------------------------
 # Step 8: CV-based QC filtering for sites (user threshold)
 # ------------------------------
-stage("Stage 7/10 - Joint glycosite/protein raw-Rm CV filtering")
+stage("Stage 7/10 - Joint Site Group / Protein-Group raw-Rm CV filtering")
 # This step should be placed after saving site_outfile, ensuring that
 # site_df_filtered and df_control_filtered already contain ΔRm and protein CV columns.
 
@@ -1216,64 +1451,64 @@ print("Multiple-testing mode:", "BH-FDR" if apply_bh else "raw p-values (no BH c
 delta_rm_threshold = DELTA_RM_THRESHOLD_DEFAULT
 print(f"Mean DeltaRm effect-size threshold = {delta_rm_threshold:.3f}")
 
-# 2) Check required columns (site CV column and protein CV column)
-site_cv_col = "CV_Rm_glyco_filtered"   # site-level CV column
-protein_cv_col = "CV_Rm_filtered"      # protein-level CV column
+# 2) Check required columns (Site-Group CV column and matched Protein-Group CV column)
+site_cv_col = "CV_Rm_sg_filtered"   # Site-Group-level raw-Rm CV column
+protein_cv_col = "CV_Rm_filtered"      # Protein-Group-level raw-Rm CV column
 
 missing = []
 if site_cv_col not in site_df_filtered.columns:
     missing.append(site_cv_col)
 if protein_cv_col not in df_control_filtered.columns:
     missing.append(protein_cv_col)
-if "Protein Accession" not in site_df_filtered.columns:
-    missing.append("Protein Accession (in site_df_filtered)")
-if "UniProtID" not in df_control_filtered.columns:
-    missing.append("UniProtID (in df_control_filtered)")
+if "protein_group_id" not in site_df_filtered.columns:
+    missing.append("protein_group_id (in site_df_filtered)")
+if "protein_group_id" not in df_control_filtered.columns:
+    missing.append("protein_group_id (in df_control_filtered)")
 
 if missing:
     raise KeyError(f"Required columns missing for CV filtering: {missing}")
 
-# 3) Map protein-level CV (UniProtID → CV_Rm_filtered)
-protein_cv_series = df_control_filtered.set_index("UniProtID")[protein_cv_col]
+# 3) Map Protein-Group-level CV
+protein_cv_series = df_control_filtered.set_index("protein_group_id")[protein_cv_col]
 
 # Report match statistics
-mapped_proteins = site_df_filtered["Protein Accession"].isin(protein_cv_series.index)
+mapped_proteins = site_df_filtered["protein_group_id"].isin(protein_cv_series.index)
 n_mapped = mapped_proteins.sum()
 n_total_sites = site_df_filtered.shape[0]
-print(f"Site table: {n_total_sites} sites total. {n_mapped} sites have matching protein CV in df_control_filtered.")
+print(f"Site table: {n_total_sites} Site Groups total. {n_mapped} have matching Protein Group CV.")
 
-# 4) Map protein CV into the site table (keep all original columns including ΔRm)
+# 4) Map matched Protein-Group CV into the Site Group table (keep all original columns including ΔRm)
 site_df_filtered = site_df_filtered.copy()
-site_df_filtered["Protein_CV"] = site_df_filtered["Protein Accession"].map(protein_cv_series)
+site_df_filtered["Matched_PG_CV"] = site_df_filtered["protein_group_id"].map(protein_cv_series)
 
 # 5) CV filtering (NaN treated as failing)
 before_count = site_df_filtered.shape[0]
 pass_mask = (
     (site_df_filtered[site_cv_col].notna()) &
-    (site_df_filtered["Protein_CV"].notna()) &
+    (site_df_filtered["Matched_PG_CV"].notna()) &
     (site_df_filtered[site_cv_col] <= cv_threshold) &
-    (site_df_filtered["Protein_CV"] <= cv_threshold)
+    (site_df_filtered["Matched_PG_CV"] <= cv_threshold)
 )
 site_df_CV_pass = site_df_filtered.loc[pass_mask].copy()
 after_count = site_df_CV_pass.shape[0]
 
-print(f"CV filtering: retained {after_count} / {before_count} sites ({after_count/before_count*100 if before_count>0 else 0:.1f}%).")
-print(f"Sites with missing protein CV (excluded): {(~mapped_proteins).sum()}")
+print(f"CV filtering: retained {after_count} / {before_count} Site Groups ({after_count/before_count*100 if before_count>0 else 0:.1f}%).")
+print(f"Site units with missing Protein Group CV (excluded): {(~mapped_proteins).sum()}")
 
 # 6) Save CV-filtered site table
-cv_filtered_output = os.path.join(tables_dir, f"12_nglycosites_cv_pass_{int(cv_threshold*100)}pct.csv")
+cv_filtered_output = os.path.join(tables_dir, f"12_nglycosite_site_groups_cv_pass_{int(cv_threshold*100)}pct.csv")
 export_csv(site_df_CV_pass, cv_filtered_output, SITE_EXPORT_RENAME)
 print(f"CV-filtered site table saved: {cv_filtered_output}")
 
-# 7) Optional QC plot: site CV vs protein CV
+# 7) Optional QC plot: Site Group CV vs matched Protein Group CV
 try:
     plt.figure(figsize=(6,6))
-    plt.scatter(site_df_filtered[site_cv_col], site_df_filtered["Protein_CV"], s=10, alpha=0.6)
-    plt.axvline(cv_threshold, linestyle='--', linewidth=1, label=f"site CV threshold ({cv_threshold:.2f})")
-    plt.axhline(cv_threshold, linestyle='--', linewidth=1, label=f"protein CV threshold ({cv_threshold:.2f})")
-    plt.xlabel("Site CV (CV_Rm_glyco_filtered)")
-    plt.ylabel("Protein CV (CV_Rm_filtered)")
-    plt.title(f"Site CV vs Protein CV (threshold {cv_threshold:.2f})")
+    plt.scatter(site_df_filtered[site_cv_col], site_df_filtered["Matched_PG_CV"], s=10, alpha=0.6)
+    plt.axvline(cv_threshold, linestyle='--', linewidth=1, label=f"Site Group CV threshold ({cv_threshold:.2f})")
+    plt.axhline(cv_threshold, linestyle='--', linewidth=1, label=f"Protein Group CV threshold ({cv_threshold:.2f})")
+    plt.xlabel("Site Group CV (raw Rm)")
+    plt.ylabel("Matched Protein Group CV (raw Rm)")
+    plt.title(f"Site Group CV vs matched Protein Group CV (threshold {cv_threshold:.2f})")
     plt.legend(frameon=False, fontsize=8)
     plt.tight_layout()
     qc_plot_file = os.path.join(figures_dir, f"07_site_vs_protein_raw_rm_cv_{int(cv_threshold*100)}pct.tiff")
@@ -1283,9 +1518,9 @@ try:
 except Exception as e:
     print("Warning: failed to draw CV scatter plot:", e)
 
-# 8) Final summary: number of proteins with at least one CV-passing site
-kept_proteins = site_df_CV_pass["Protein Accession"].nunique()
-print(f"Number of proteins with ≥1 site passing CV filter: {kept_proteins}")
+# 8) Final summary: number of Protein Groups with at least one CV-passing Site Group
+kept_proteins = site_df_CV_pass["protein_group_id"].nunique()
+print(f"Number of Protein Groups with ≥1 Site Group passing CV filter: {kept_proteins}")
 
 # -----------------------------
 # Step 9: Visualize Delta_Rm distribution and check normality (robust)
@@ -1303,7 +1538,7 @@ for rep_idx, rep_col in enumerate(delta_rep_cols, start=1):
     # --- 1. Histogram + KDE ---
     plt.figure(figsize=(6,4))
     sns.histplot(delta_rm_for_plot, kde=True, color='#A7AED2', bins=30)
-    plt.title(f'{rep_col} Distribution (N-glycosites passed CV QC)')
+    plt.title(f'{rep_col} Distribution (Site Groups passed CV QC)')
     plt.xlabel(rep_col)
     plt.ylabel('Count')
     plt.tight_layout()
@@ -1351,7 +1586,7 @@ delta_rm_not_normal = not bool(normality_df["is_normal"].all())
 if delta_rm_not_normal:
     bad_reps = normality_df.loc[~normality_df["is_normal"], "replicate"].tolist()
     print(f"Normality gate failed for replicates: {bad_reps}")
-    print("At least one biological replicate is NOT normal; use site-level paired testing (default Wilcoxon, optional paired t-test override)")
+    print("At least one biological replicate is NOT normal; use Site-Group-level paired testing (default Wilcoxon, optional paired t-test override)")
 else:
     print("All biological replicates are approximately normal, use CV-binned robust sigma testing per replicate")
 
@@ -1363,11 +1598,11 @@ print("Step 9 check: site_df_CV_pass rows =", site_df_CV_pass.shape[0])
 # ------------------------------
 stage("Stage 9/10 - Statistical significance analysis")
 
-# 1) Compute representative CV for each site (max of site CV and protein CV)
+# 1) Compute representative CV for each Site Group (max of site CV and protein CV)
 site_df_CV_pass = site_df_CV_pass.copy()
-site_df_CV_pass["Rep_CV"] = site_df_CV_pass[[site_cv_col, "Protein_CV"]].max(axis=1)
+site_df_CV_pass["Rep_CV"] = site_df_CV_pass[[site_cv_col, "Matched_PG_CV"]].max(axis=1)
 
-# 2) Sort sites by representative CV (ascending)
+# 2) Sort Site Groups by representative CV (ascending)
 site_df_sorted = site_df_CV_pass.sort_values("Rep_CV").reset_index(drop=True)
 delta_matrix_sorted = site_df_sorted[delta_rep_cols].to_numpy(dtype=float)
 
@@ -1378,7 +1613,7 @@ if not delta_rm_not_normal:
     default_bin_counts = [1, 5, 10, 15, 20, 25, 30, 35, 40]
     print(f"Default bin counts for significance testing: {default_bin_counts}")
     
-    sig_site_counts = []  # to store number of significant sites for each bin count
+    sig_site_counts = []  # to store number of significant Site Groups for each bin count
     
     for bin_count in default_bin_counts:
         n_sites = len(site_df_sorted)
@@ -1406,7 +1641,7 @@ if not delta_rm_not_normal:
         sig_site_counts.append(sig_count)
 
         print(
-            f"Bin count {bin_count}: {sig_count} significant sites "
+            f"Bin count {bin_count}: {sig_count} significant Site Groups "
             f"(same positive direction + mean ΔRm>{delta_rm_threshold:.2f} + statistical consistency rule)"
         )
 
@@ -1436,8 +1671,8 @@ if not delta_rm_not_normal:
         plt.plot(x_smooth, y_smooth, color="#F9BEBB", linewidth=2, label="Smoothed spline curve")
         
         plt.xlabel("Bin count")
-        plt.ylabel("Number of significant N-glycosites")
-        plt.title("Significant N-glycosite number vs bin count")
+        plt.ylabel("Number of significant N-glycosite Site Groups")
+        plt.title("Significant Site Group count vs bin count")
         plt.legend(frameon=False)
         plt.tight_layout()
         
@@ -1453,7 +1688,7 @@ if not delta_rm_not_normal:
     # Step 11 (normal branch): User-specified bin size for significance testing
     # ------------------------------
     raw_bin_size_input = input(
-        "Enter custom bin size (number of N-glycosites per window) for significance testing, e.g., 50: "
+        "Enter custom bin size (number of N-glycosite Site Groups per window) for significance testing, e.g., 50: "
     ).strip()
     try:
         custom_bin_size = int(raw_bin_size_input)
@@ -1462,7 +1697,7 @@ if not delta_rm_not_normal:
     except Exception as e:
         raise ValueError(f"Invalid bin size: {e}")
     
-    print(f"Using custom bin size = {custom_bin_size} sites per window")
+    print(f"Using custom bin size = {custom_bin_size} Site Groups per window")
     
     # 2) Compute bins for the user-specified bin size
     n_sites = len(site_df_sorted)
@@ -1534,11 +1769,11 @@ if not delta_rm_not_normal:
     site_df_final["Significant"] = sig_mask_custom
     
     # 7) Save table
-    custom_output_file = os.path.join(tables_dir, f"14_nglycosites_significance_normal_binSize{custom_bin_size}.csv")
+    custom_output_file = os.path.join(tables_dir, f"14_nglycosite_site_groups_significance_normal_binSize{custom_bin_size}.csv")
     export_csv(site_df_final, custom_output_file, SITE_EXPORT_RENAME)
     n_sig = sig_mask_custom.sum()
     print(f"Consensus rule: same positive direction + mean ΔRm>{delta_rm_threshold:.2f} + all significance values<0.10 + at least one<0.05")
-    print(f"Custom bin size {custom_bin_size}: {n_sig} significant sites saved to {custom_output_file}")
+    print(f"Custom bin size {custom_bin_size}: {n_sig} significant Site Groups saved to {custom_output_file}")
 
     # Diagnostic volcano-like plots for the normal branch.
     # The x-axis is MEAN DeltaRm because the effect-size threshold is defined on
@@ -1571,12 +1806,12 @@ if not delta_rm_not_normal:
         print(f"Normal-branch volcano plot saved: {volcano_plot_rep}")
 
 else:
-    print("Step10 strategy: replicate-level normality gate failed -> paired one-tailed test (normalized protein Rm vs normalized glycosite Rm) per site")
+    print("Step10 strategy: replicate-level normality gate failed -> paired one-tailed test (normalized matched Protein-Group Rm vs normalized Site-Group Rm) per Site Group")
 
     site_df_non_normal = site_df_CV_pass.copy().reset_index(drop=True)
     needed_cols = [
-        "Rm_unmod1_norm", "Rm_unmod2_norm", "Rm_unmod3_norm",
-        "Rm_glyco1_norm", "Rm_glyco2_norm", "Rm_glyco3_norm", "ΔRm"
+        "Rm_pg1_norm_ref", "Rm_pg2_norm_ref", "Rm_pg3_norm_ref",
+        "Rm_sg1_norm", "Rm_sg2_norm", "Rm_sg3_norm", "ΔRm"
     ]
     missing_cols = [c for c in needed_cols if c not in site_df_non_normal.columns]
     if missing_cols:
@@ -1592,17 +1827,17 @@ else:
     else:
         raise ValueError("Invalid non-normal paired test. Use 'wilcoxon' or 'paired_t'.")
 
-    print(f"Paired test: {non_normal_method} on normalized Rm (one-tailed H1: glycosite Rm > protein Rm)")
+    print(f"Paired test: {non_normal_method} on normalized Rm (one-tailed H1: Site-Group Rm > matched Protein-Group Rm)")
 
     pvals = []
     n_pairs_used = []
     for _, row in site_df_non_normal.iterrows():
-        protein_rm_norm = np.array([row["Rm_unmod1_norm"], row["Rm_unmod2_norm"], row["Rm_unmod3_norm"]], dtype=float)
-        glycosite_rm_norm = np.array([row["Rm_glyco1_norm"], row["Rm_glyco2_norm"], row["Rm_glyco3_norm"]], dtype=float)
+        protein_rm_norm = np.array([row["Rm_pg1_norm_ref"], row["Rm_pg2_norm_ref"], row["Rm_pg3_norm_ref"]], dtype=float)
+        glycosite_rm_norm = np.array([row["Rm_sg1_norm"], row["Rm_sg2_norm"], row["Rm_sg3_norm"]], dtype=float)
 
         p, n_pairs = paired_one_tailed_pvalue(
-            protein_vals=protein_rm_norm,
-            glycosite_vals=glycosite_rm_norm,
+            protein_group_vals=protein_rm_norm,
+            site_group_vals=glycosite_rm_norm,
             method=non_normal_method,
             side="right"
         )
@@ -1640,12 +1875,12 @@ else:
 
     # Save non-normal branch result
     if non_normal_method == "wilcoxon":
-        non_normal_output_file = os.path.join(tables_dir, "14_nglycosites_significance_paired_wilcoxon.csv")
+        non_normal_output_file = os.path.join(tables_dir, "14_nglycosite_site_groups_significance_paired_wilcoxon.csv")
     else:
-        non_normal_output_file = os.path.join(tables_dir, "14_nglycosites_significance_paired_t.csv")
+        non_normal_output_file = os.path.join(tables_dir, "14_nglycosite_site_groups_significance_paired_t.csv")
     export_csv(site_df_final, non_normal_output_file, SITE_EXPORT_RENAME)
     print(f"Non-normal branch results saved: {non_normal_output_file}")
-    print(f"Significant up-stabilized sites: {site_df_final['Significant'].sum()}")
+    print(f"Significant up-stabilized Site Groups: {site_df_final['Significant'].sum()}")
 
     # Top-25 site boxplots
     top_n = min(25, site_df_final.shape[0])
@@ -1659,8 +1894,8 @@ else:
 
         for i, (_, row) in enumerate(top_df.iterrows()):
             ax = axes[i]
-            protein_rm_norm = np.array([row["Rm_unmod1_norm"], row["Rm_unmod2_norm"], row["Rm_unmod3_norm"]], dtype=float)
-            glycosite_rm_norm = np.array([row["Rm_glyco1_norm"], row["Rm_glyco2_norm"], row["Rm_glyco3_norm"]], dtype=float)
+            protein_rm_norm = np.array([row["Rm_pg1_norm_ref"], row["Rm_pg2_norm_ref"], row["Rm_pg3_norm_ref"]], dtype=float)
+            glycosite_rm_norm = np.array([row["Rm_sg1_norm"], row["Rm_sg2_norm"], row["Rm_sg3_norm"]], dtype=float)
 
             ax.boxplot(
                 [protein_rm_norm], positions=[1], widths=0.5, showfliers=False, patch_artist=True,
@@ -1688,7 +1923,9 @@ else:
             stat_name = "FDR" if apply_bh else "p"
             ax.text(1.5, y_text + 0.03 * y_span, f"{stat_name}={row['Significance_value']:.2e} {star}", ha="center", va="bottom", fontsize=7)
 
-            site_label = f"{row['Protein Accession']}|N{int(row['N-Glycosite'])}"
+            site_label = str(row.get("candidate_sites", row.get("site_group_id", "site_group")))
+            if len(site_label) > 42:
+                site_label = site_label[:39] + "..."
             ax.set_title(site_label, fontsize=7)
             ax.set_xticks([1, 2])
             ax.set_xticklabels(["Protein", "N-glycosite"], fontsize=7)
@@ -1706,7 +1943,7 @@ else:
 
     # Volcano-like plot for all sites
     volcano_df = site_df_final.copy()
-    print("Non-normal volcano uses mean ΔRm across biological replicates (same ΔRm definition as site-level table).")
+    print("Non-normal volcano uses mean ΔRm across biological replicates (same DeltaRm definition as the Site Group table).")
     volcano_df["neglog10Stat"] = -np.log10(np.clip(volcano_df["Significance_value"].values, 1e-300, None))
     up_mask = (volcano_df["ΔRm"] > delta_rm_threshold) & (volcano_df["Significance_value"] < 0.05)
     down_mask = (volcano_df["ΔRm"] < -delta_rm_threshold) & (volcano_df["Significance_value"] < 0.05)
@@ -1737,6 +1974,16 @@ stage("Stage 10/10 - Save run metadata")
 run_parameters = {
     "pipeline": PIPELINE_NAME,
     "pipeline_version": PIPELINE_VERSION,
+    "protein_quantitative_unit": "PEAKS_Protein_Group",
+    "protein_member_identity_unit": "UniProt_accession",
+    "site_group_definition": "one_protein_group_plus_one_candidate_site_assignment_set",
+    "shared_peptide_policy": "collapse_identical_quantitative_evidence_within_protein_group",
+    "candidate_annotation_policy": "retain_all_valid_accession_site_candidates",
+    "normalization_weighting": "one_vote_per_unique_protein_group",
+    "normalization_population": "unique_control_protein_groups_after_qc",
+    "multiple_testing_unit": "SiteGroupID",
+    "candidate_annotations_are_independent_tests": False,
+    "method_formulas": METHOD_FORMULAS,
     "run_completed_at": datetime.now().isoformat(timespec="seconds"),
     "protein_csv": file,
     "peptide_csv": peptide_csv_file,
@@ -1749,7 +1996,7 @@ run_parameters = {
     "rm_normalization": "replicate_median_multiplicative_alignment",
     "rm_reference_median": float(rm_reference_median),
     "rm_correction_factors": {k: float(v) for k, v in CF.items()},
-    "delta_rm_definition": "mean(glycosite_Rm_norm_rep - protein_Rm_norm_rep)",
+    "delta_rm_definition": "mean_i(site_group_Rm_norm_i - matched_protein_group_Rm_norm_i)",
     "delta_rm_threshold": float(delta_rm_threshold),
     "multiple_testing": "BH" if apply_bh else "none",
     "normality_alpha": NORMALITY_ALPHA_DEFAULT,
