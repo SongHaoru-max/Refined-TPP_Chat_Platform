@@ -308,13 +308,13 @@ Systematic differences among biological replicates are corrected using **multipl
 For replicate $i$, the normalization population consists of unique control Protein Groups passing the relevant QC filters:
 
 ```math
-M_i = \operatorname{median}_{g}\left(Rm^{PG}_{g,i}\right)
+M_i = \mathrm{median}_{g}\left(Rm^{PG}_{g,i}\right)
 ```
 
 The common reference center is:
 
 ```math
-T = \exp\left[\operatorname{median}_{i}\left(\log M_i\right)\right]
+T = \exp\left[\mathrm{median}_{i}\left(\log M_i\right)\right]
 ```
 
 The replicate-specific correction factor is:
@@ -482,10 +482,10 @@ For Protein Group $g$:
 CV^{PG}_{g}
 =
 \frac{
-\operatorname{SD}_{i}
+\mathrm{SD}_{i}
 \left(Rm^{PG}_{g,i}\right)
 }{
-\operatorname{Mean}_{i}
+\mathrm{Mean}_{i}
 \left(Rm^{PG}_{g,i}\right)
 }
 ```
@@ -496,10 +496,10 @@ For Site Group $s$:
 CV^{SG}_{s}
 =
 \frac{
-\operatorname{SD}_{i}
+\mathrm{SD}_{i}
 \left(Rm^{SG}_{s,i}\right)
 }{
-\operatorname{Mean}_{i}
+\mathrm{Mean}_{i}
 \left(Rm^{SG}_{s,i}\right)
 }
 ```
