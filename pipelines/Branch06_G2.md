@@ -289,23 +289,13 @@ For Protein Group $g$ and TMT channel $c$, let $I^{PG}_{g,c}$ denote Protein-Gro
 
 Three biological-replicate Rm values are calculated:
 
-$$
-Rm^{PG}_{g,1}
-=
-\frac{I^{PG}_{g,129}}{I^{PG}_{g,127}}
-$$
-
-$$
-Rm^{PG}_{g,2}
-=
-\frac{I^{PG}_{g,130}}{I^{PG}_{g,128}}
-$$
-
-$$
-Rm^{PG}_{g,3}
-=
-\frac{I^{PG}_{g,131}}{I^{PG}_{g,126}}
-$$
+```math
+\begin{aligned}
+Rm^{PG}_{g,1} &= \frac{I^{PG}_{g,129}}{I^{PG}_{g,127}}, \\
+Rm^{PG}_{g,2} &= \frac{I^{PG}_{g,130}}{I^{PG}_{g,128}}, \\
+Rm^{PG}_{g,3} &= \frac{I^{PG}_{g,131}}{I^{PG}_{g,126}}.
+\end{aligned}
+```
 
 Each Rm corresponds to one biological replicate.
 
@@ -317,44 +307,27 @@ Systematic differences among biological replicates are corrected using **multipl
 
 For replicate $i$, the normalization population consists of unique control Protein Groups passing the relevant QC filters:
 
-$$
-M_i
-=
-\operatorname{median}_{g}
-\left(
-Rm^{PG}_{g,i}
-\right)
-$$
+```math
+M_i = \operatorname{median}_{g}\left(Rm^{PG}_{g,i}\right)
+```
 
 The common reference center is:
 
-$$
-T
-=
-\exp
-\left[
-\operatorname{median}_{i}
-\left(
-\log M_i
-\right)
-\right]
-$$
+```math
+T = \exp\left[\operatorname{median}_{i}\left(\log M_i\right)\right]
+```
 
 The replicate-specific correction factor is:
 
-$$
-CF_i
-=
-\frac{T}{M_i}
-$$
+```math
+CF_i = \frac{T}{M_i}
+```
 
 Normalized Protein-Group Rm is:
 
-$$
-Rm^{PG,\mathrm{norm}}_{g,i}
-=
-Rm^{PG}_{g,i}\times CF_i
-$$
+```math
+Rm^{PG,\mathrm{norm}}_{g,i} = Rm^{PG}_{g,i}\times CF_i
+```
 
 The same correction factors are subsequently applied to Site-Group Rm values.
 
@@ -416,9 +389,9 @@ Peptide evidences are aggregated into the same Site Group when they share:
 
 Thus, if:
 
-$$
+```math
 C_{e_1}=C_{e_2}
-$$
+```
 
 within the same Protein Group, the evidences can support one Site Group.
 
@@ -435,11 +408,11 @@ are retained as different Site Groups because assigning peptide B to the unique 
 
 For Site Group $s$, let $E_s$ be the set of supporting peptide quantitative-evidence units. Reporter intensity is summed once per evidence:
 
-$$
+```math
 I^{SG}_{s,c}
 =
 \sum_{e\in E_s} I_{e,c}
-$$
+```
 
 A repeated accession annotation of the same peptide evidence does not duplicate its intensity contribution.
 
@@ -465,31 +438,31 @@ QC reporting distinguishes:
 
 For Site Group $s$:
 
-$$
+```math
 Rm^{SG}_{s,1}
 =
 \frac{I^{SG}_{s,129}}{I^{SG}_{s,127}}
-$$
+```
 
-$$
+```math
 Rm^{SG}_{s,2}
 =
 \frac{I^{SG}_{s,130}}{I^{SG}_{s,128}}
-$$
+```
 
-$$
+```math
 Rm^{SG}_{s,3}
 =
 \frac{I^{SG}_{s,131}}{I^{SG}_{s,126}}
-$$
+```
 
 The Protein-Group-derived correction factors are applied:
 
-$$
+```math
 Rm^{SG,\mathrm{norm}}_{s,i}
 =
 Rm^{SG}_{s,i}\times CF_i
-$$
+```
 
 Each Site Group entering canonical G2 analysis must map to one unique matched Protein Group $g(s)$.
 
@@ -505,7 +478,7 @@ Coefficient of variation is calculated from **raw, non-normalized Rm values**.
 
 For Protein Group $g$:
 
-$$
+```math
 CV^{PG}_{g}
 =
 \frac{
@@ -515,11 +488,11 @@ CV^{PG}_{g}
 \operatorname{Mean}_{i}
 \left(Rm^{PG}_{g,i}\right)
 }
-$$
+```
 
 For Site Group $s$:
 
-$$
+```math
 CV^{SG}_{s}
 =
 \frac{
@@ -529,19 +502,19 @@ CV^{SG}_{s}
 \operatorname{Mean}_{i}
 \left(Rm^{SG}_{s,i}\right)
 }
-$$
+```
 
 A user-defined CV threshold is applied jointly. A Site Group proceeds only when:
 
-$$
+```math
 CV^{PG}_{g(s)}\leq CV_{\mathrm{threshold}}
-$$
+```
 
 and
 
-$$
+```math
 CV^{SG}_{s}\leq CV_{\mathrm{threshold}}
-$$
+```
 
 > **Important:** CV is calculated before replicate-median normalization. Normalized Rm values are used for ΔRm and paired statistical comparison.
 
@@ -553,7 +526,7 @@ $$
 
 For Site Group $s$ with unique matched Protein Group $g(s)$:
 
-$$
+```math
 \boxed{
 \Delta Rm_{s,i}
 =
@@ -561,28 +534,28 @@ Rm^{SG,\mathrm{norm}}_{s,i}
 -
 Rm^{PG,\mathrm{norm}}_{g(s),i}
 }
-$$
+```
 
 Thus, each replicate-level ΔRm represents the Site-Group stability shift relative to the matched Protein-Group reference in the same biological replicate.
 
 The final Site-Group effect size is the arithmetic mean:
 
-$$
+```math
 \boxed{
 \overline{\Delta Rm}_{s}
 =
 \frac{1}{3}
 \sum_{i=1}^{3}\Delta Rm_{s,i}
 }
-$$
+```
 
 The default positive effect-size criterion is:
 
-$$
+```math
 \boxed{
 \overline{\Delta Rm}_{s}>0.1
 }
-$$
+```
 
 > **Important:** The `0.1` threshold is applied to the **mean ΔRm across biological replicates**. Individual replicate ΔRm values are not independently required to exceed `0.1`.
 
@@ -626,9 +599,9 @@ The current consensus rule can require:
 
 The effect-size criterion remains:
 
-$$
+```math
 \overline{\Delta Rm}_{s}>0.1
-$$
+```
 
 and is not replaced by replicate-specific `ΔRm > 0.1` thresholds.
 
@@ -654,21 +627,21 @@ A paired t-test can optionally be selected.
 
 For the positive-stability direction, the alternative hypothesis is:
 
-$$
+```math
 Rm^{SG,\mathrm{norm}}_{s}
 >
 Rm^{PG,\mathrm{norm}}_{g(s)}
-$$
+```
 
 Because paired differences equal replicate-level ΔRm:
 
-$$
+```math
 Rm^{SG,\mathrm{norm}}_{s,i}
 -
 Rm^{PG,\mathrm{norm}}_{g(s),i}
 =
 \Delta Rm_{s,i}
-$$
+```
 
 the paired test evaluates whether the Site Group exhibits a positive stability shift relative to its matched Protein Group.
 
@@ -1025,11 +998,11 @@ The refined G2 workflow does not assume that every accession-expanded PEAKS row 
 
 Instead, it distinguishes:
 
-$$
+```math
 \text{quantitative evidence}
 \neq
 \text{candidate biological assignment}
-$$
+```
 
 This design preserves potential protein and site information while preventing annotation multiplicity alone from increasing normalization weight, Site-Group intensity, or the number of statistical hypotheses.
 
